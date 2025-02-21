@@ -1,6 +1,14 @@
 import { useState } from "react";
 
-export default function VideoPlayer() {
+interface VideoPlayerProps {
+  overlayText: string;
+  position: { x: number; y: number };
+}
+
+export default function VideoPlayer({
+  overlayText,
+  position,
+}: VideoPlayerProps) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
 
   const handleSelectVideo = async () => {
@@ -16,9 +24,28 @@ export default function VideoPlayer() {
   };
 
   return (
-    <div>
+    <div style={{ position: "relative", width: "100%" }}>
       <button onClick={handleSelectVideo}>Selecionar Vídeo</button>
-      {videoSrc && <video controls width="100%" src={videoSrc} />}
+      {videoSrc && (
+        <div style={{ position: "relative" }}>
+          <video controls width="100%" src={videoSrc} />
+          {/* Overlay Preview */}
+          <div
+            style={{
+              position: "absolute",
+              top: `${position.y}px`,
+              left: `${position.x}px`,
+              color: "white",
+              fontSize: "24px",
+              fontWeight: "bold",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.7)",
+              pointerEvents: "none", // Prevents interference with video controls
+            }}
+          >
+            {overlayText}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

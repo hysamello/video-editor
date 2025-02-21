@@ -1,11 +1,9 @@
-import VideoPlayer from "./components/VideoPlayer";
-import OverlayEditor from "./components/OverlayEditor.tsx";
+import OverlayEditor from "./components/OverlayEditor";
 
 function App() {
   return (
     <div>
       <h1>Video Editor</h1>
-      <VideoPlayer />
       <OverlayEditor />
     </div>
   );
