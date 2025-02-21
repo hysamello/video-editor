@@ -72,14 +72,18 @@ ipcMain.handle("open-video-dialog", async () => {
   }
 });
 
-// Handle overlay data
-ipcMain.on("add-overlay", (event, overlayData) => {
-  if (mainWindow) {
-    mainWindow.webContents.send("overlay-added", overlayData);
-  }
+// Save the overlay image
+ipcMain.on("save-overlay-image", (event, imageData) => {
+  const downloadsDir = path.join(os.homedir(), "Downloads");
+  const overlayPath = path.join(downloadsDir, "overlay.png");
+
+  const base64Data = imageData.replace(/^data:image\/png;base64,/, "");
+  fs.writeFileSync(overlayPath, base64Data, "base64");
+
+  event.sender.send("overlay-image-saved", overlayPath);
 });
 
-// Generate unique filename in Downloads folder
+// Generate unique filename
 function getUniqueFilePath(directory, filename) {
   const ext = path.extname(filename);
   const name = path.basename(filename, ext);
@@ -94,18 +98,20 @@ function getUniqueFilePath(directory, filename) {
   return finalPath;
 }
 
-// Export video with overlay text
-ipcMain.on("export-video", (event, overlayText) => {
+// Export video with overlay image
+ipcMain.on("export-video-with-image", (event, imagePath) => {
   if (!mainWindow || !selectedVideoPath) {
     console.error("No video selected.");
     return;
   }
 
   const downloadsDir = path.join(os.homedir(), "Downloads");
-  const outputFilePath = getUniqueFilePath(downloadsDir, "exported_video.mp4");
+  const outputFilePath = getUniqueFilePath(
+    downloadsDir,
+    "exported_video_with_overlay.mp4",
+  );
 
-  const sanitizedText = overlayText.replace(/'/g, "\\'");
-  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -vf "drawtext=text='${sanitizedText}':x=50:y=50:fontsize=24:fontcolor=white" -codec:a copy "${outputFilePath}"`;
+  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -i "${imagePath}" -filter_complex "[1][0]scale2ref=w=iw:h=ih[overlay][base];[base][overlay]overlay=10:10" -codec:a copy "${outputFilePath}"`;
 
   exec(ffmpegCommand, (error, stdout, stderr) => {
     if (error) {
@@ -115,9 +121,4 @@ ipcMain.on("export-video", (event, overlayText) => {
     }
     mainWindow.webContents.send("video-exported", outputFilePath);
   });
-});
-
-// Receive video path
-ipcMain.on("video-path", (event, videoPath) => {
-  selectedVideoPath = videoPath;
 });

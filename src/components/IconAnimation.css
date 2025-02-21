@@ -1,0 +1,82 @@
+.ellipse-container {
+  height: 100px;
+  width: 150px;
+  border: 2px solid grey;
+  border-radius: 50%;
+}
+
+.animated-ellipse {
+  fill: none; /* Makes the ellipse hollow */
+  stroke: #000000; /* Ellipse border color */
+  stroke-width: 6; /* Thickness of the ellipse's border */
+  stroke-dasharray: 408; /* Approximate circumference of the ellipse */
+  stroke-dashoffset: -408; /* Start the stroke from the middle */
+  animation: drawEllipse 2s ease-in-out infinite; /* Infinite animation */
+}
+
+@keyframes drawEllipse {
+  0% {
+    stroke-dashoffset: 408;
+  }
+}
+
+.zoom-in-component {
+  animation: zoomIn 1s ease-in-out;
+}
+
+/*ICON --------------------------------------------------------*/
+
+.icon-container {
+  img {
+    height: 75px;
+    /*width: 125px;*/
+  }
+}
+
+.icon {
+  color: black;
+}
+
+.rotating-icon {
+  animation:
+    zoomIn 1s ease-out,
+    rotateY 2s ease-in-out infinite; /* Infinite rotation animation */
+}
+
+/* Keyframes for rotation */
+@keyframes rotateY {
+  0% {
+    transform: rotateY(0deg); /* Start position */
+  }
+  100% {
+    transform: rotateY(360deg); /* Full rotation */
+  }
+}
+
+@keyframes zoomIn {
+  0% {
+    transform: scale(0.2); /* Start small */
+  }
+  100% {
+    transform: scale(1); /* Full size */
+  }
+}
+
+/*------------------------------*/
+
+.circle {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background-color: white;
+  animation: colorChange 1s infinite alternate;
+}
+
+@keyframes colorChange {
+  0% {
+    background-color: white;
+  }
+  100% {
+    background-color: black;
+  }
+}
