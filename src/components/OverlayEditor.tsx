@@ -13,16 +13,30 @@ export default function OverlayEditor() {
     }
   };
 
+  const handleExportVideo = () => {
+    if (window.electron) {
+      console.log("handleExportVideo")
+      window.electron.exportVideo();
+    } else {
+      console.error("Electron API not available");
+    }
+  };
+
   useEffect(() => {
     if (window.electron) {
       window.electron.onOverlayAdded((data) => {
         console.log("Overlay received:", data);
+      });
+
+      window.electron.onVideoExported((filePath) => {
+        alert(`Vídeo exportado para: ${filePath}`);
       });
     }
   }, []);
 
   return (
     <div>
+      <h2>Overlay Editor</h2>
       <input
         type="text"
         placeholder="Enter text"
@@ -36,6 +50,7 @@ export default function OverlayEditor() {
         onChange={(e) => setIcon(e.target.value)}
       />
       <button onClick={handleAddOverlay}>Add Overlay</button>
+      <button onClick={handleExportVideo}>Export Video</button>
     </div>
   );
 }

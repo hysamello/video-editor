@@ -3,17 +3,21 @@ import { useState } from "react";
 export default function VideoPlayer() {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setVideoSrc(url);
+  const handleSelectVideo = async () => {
+    if (window.electron) {
+      const videoPath = await window.electron.openVideoDialog();
+      if (videoPath) {
+        setVideoSrc(`file://${videoPath}`);
+        console.log("Caminho do vídeo selecionado:", videoPath);
+      } else {
+        console.error("Nenhum vídeo selecionado.");
+      }
     }
   };
 
   return (
     <div>
-      <input type="file" accept="video/*" onChange={handleFileUpload} />
+      <button onClick={handleSelectVideo}>Selecionar Vídeo</button>
       {videoSrc && <video controls width="100%" src={videoSrc} />}
     </div>
   );
