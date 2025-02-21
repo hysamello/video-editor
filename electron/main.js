@@ -2,12 +2,14 @@ import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
+import fs from "fs";
+import os from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow = null;
-let selectedVideoPath = null; // Store the selected video path
+let selectedVideoPath = null;
 
 app.disableHardwareAcceleration();
 
@@ -18,7 +20,7 @@ app.whenReady().then(() => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false, // Allow access to file paths
+      webSecurity: false,
       enableRemoteModule: true,
       preload: path.join(__dirname, "preload.js"),
     },
@@ -63,42 +65,47 @@ ipcMain.handle("open-video-dialog", async () => {
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
-    const videoPath = result.filePaths[0];
-    selectedVideoPath = videoPath;
-    return videoPath;
+    selectedVideoPath = result.filePaths[0];
+    return selectedVideoPath;
   } else {
     return null;
   }
 });
 
 // Handle overlay data
-ipcMain.on("add-overlay", async (event, overlayData) => {
+ipcMain.on("add-overlay", (event, overlayData) => {
   if (mainWindow) {
     mainWindow.webContents.send("overlay-added", overlayData);
   }
 });
 
-// Export video with overlay text
-ipcMain.on("export-video", async (event, overlayText) => {
-  console.log("Exporting video...");
+// Generate unique filename in Downloads folder
+function getUniqueFilePath(directory, filename) {
+  const ext = path.extname(filename);
+  const name = path.basename(filename, ext);
+  let counter = 0;
+  let finalPath = path.join(directory, `${name}${ext}`);
 
+  while (fs.existsSync(finalPath)) {
+    counter++;
+    finalPath = path.join(directory, `${name} (${counter})${ext}`);
+  }
+
+  return finalPath;
+}
+
+// Export video with overlay text
+ipcMain.on("export-video", (event, overlayText) => {
   if (!mainWindow || !selectedVideoPath) {
     console.error("No video selected.");
     return;
   }
 
-  const outputPath = path.join(__dirname, "output.mp4");
+  const downloadsDir = path.join(os.homedir(), "Downloads");
+  const outputFilePath = getUniqueFilePath(downloadsDir, "exported_video.mp4");
 
-  // Sanitize text input
   const sanitizedText = overlayText.replace(/'/g, "\\'");
-  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -vf "drawtext=text='${sanitizedText}':x=50:y=50:fontsize=24:fontcolor=white" -codec:a copy "${outputPath}"`;
-
-  console.log("outputPath");
-  console.log(outputPath);
-  console.log("sanitizedText");
-  console.log(sanitizedText);
-  console.log("ffmpegCommand");
-  console.log(ffmpegCommand);
+  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -vf "drawtext=text='${sanitizedText}':x=50:y=50:fontsize=24:fontcolor=white" -codec:a copy "${outputFilePath}"`;
 
   exec(ffmpegCommand, (error, stdout, stderr) => {
     if (error) {
@@ -106,7 +113,7 @@ ipcMain.on("export-video", async (event, overlayText) => {
       console.error(stderr);
       return;
     }
-    mainWindow.webContents.send("video-exported", outputPath);
+    mainWindow.webContents.send("video-exported", outputFilePath);
   });
 });
 
