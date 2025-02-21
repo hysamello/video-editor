@@ -1,19 +1,18 @@
 export interface ElectronAPI {
-  openVideoDialog: () => Promise<string | null>;
   sendOverlayData: (data: {
     text?: string;
-    icon?: string;
     position: { x: number; y: number };
   }) => void;
   onOverlayAdded: (
     callback: (data: {
       text?: string;
-      icon?: string;
       position: { x: number; y: number };
     }) => void,
   ) => void;
-  exportVideo: () => void;
+  exportVideo: (overlayText: string) => void;
   onVideoExported: (callback: (filePath: string) => void) => void;
+  sendVideoPath: (videoPath: string) => void;
+  openVideoDialog: () => Promise<string | null>;
 }
 
 declare global {

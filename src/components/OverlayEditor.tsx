@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 
 export default function OverlayEditor() {
   const [text, setText] = useState("");
-  const [icon, setIcon] = useState("");
   const [position] = useState({ x: 50, y: 50 });
 
   const handleAddOverlay = () => {
     if (window.electron) {
-      window.electron.sendOverlayData({ text, icon, position });
+      window.electron.sendOverlayData({ text, position });
     } else {
       console.error("Electron API not available");
     }
@@ -15,8 +14,7 @@ export default function OverlayEditor() {
 
   const handleExportVideo = () => {
     if (window.electron) {
-      console.log("handleExportVideo")
-      window.electron.exportVideo();
+      window.electron.exportVideo(text);
     } else {
       console.error("Electron API not available");
     }
@@ -42,12 +40,6 @@ export default function OverlayEditor() {
         placeholder="Enter text"
         value={text}
         onChange={(e) => setText(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Enter icon URL"
-        value={icon}
-        onChange={(e) => setIcon(e.target.value)}
       />
       <button onClick={handleAddOverlay}>Add Overlay</button>
       <button onClick={handleExportVideo}>Export Video</button>

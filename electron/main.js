@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow = null;
-let selectedVideoPath = null; // Armazenar o caminho do vídeo selecionado
+let selectedVideoPath = null; // Store the selected video path
 
 app.disableHardwareAcceleration();
 
@@ -16,15 +16,15 @@ app.whenReady().then(() => {
     width: 1280,
     height: 720,
     webPreferences: {
-      nodeIntegration: false, // Melhor segurança
+      nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false, // Permitir acesso ao caminho dos arquivos
-      enableRemoteModule: true, // Ativar acesso remoto (necessário para acessar o caminho do arquivo)
+      webSecurity: false, // Allow access to file paths
+      enableRemoteModule: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
 
-  mainWindow.loadURL("http://localhost:5173"); // Vite default port
+  mainWindow.loadURL("http://localhost:5173");
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -55,7 +55,7 @@ app.on("activate", () => {
   }
 });
 
-// Novo evento IPC para abrir o diálogo de seleção de vídeo
+// Open video dialog
 ipcMain.handle("open-video-dialog", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -64,43 +64,53 @@ ipcMain.handle("open-video-dialog", async () => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const videoPath = result.filePaths[0];
-    selectedVideoPath = videoPath; // Armazenar o caminho do vídeo
+    selectedVideoPath = videoPath;
     return videoPath;
   } else {
     return null;
   }
 });
 
-// Overlay Support
+// Handle overlay data
 ipcMain.on("add-overlay", async (event, overlayData) => {
   if (mainWindow) {
     mainWindow.webContents.send("overlay-added", overlayData);
   }
 });
 
-// Exportar o vídeo com sobreposição
-ipcMain.on("export-video", async () => {
-  console.log("export-video");
+// Export video with overlay text
+ipcMain.on("export-video", async (event, overlayText) => {
+  console.log("Exporting video...");
 
   if (!mainWindow || !selectedVideoPath) {
-    console.error("Nenhum vídeo selecionado.");
+    console.error("No video selected.");
     return;
   }
 
   const outputPath = path.join(__dirname, "output.mp4");
 
+  // Sanitize text input
+  const sanitizedText = overlayText.replace(/'/g, "\\'");
+  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -vf "drawtext=text='${sanitizedText}':x=50:y=50:fontsize=24:fontcolor=white" -codec:a copy "${outputPath}"`;
+
   console.log("outputPath");
   console.log(outputPath);
-
-  // Substituir pelo caminho correto
-  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -vf "drawtext=text='Example':x=50:y=50:fontsize=24:fontcolor=white" -codec:a copy "${outputPath}"`;
+  console.log("sanitizedText");
+  console.log(sanitizedText);
+  console.log("ffmpegCommand");
+  console.log(ffmpegCommand);
 
   exec(ffmpegCommand, (error, stdout, stderr) => {
     if (error) {
-      console.error(`Erro ao exportar vídeo: ${error.message}`);
+      console.error(`Error exporting video: ${error.message}`);
       console.error(stderr);
       return;
     }
     mainWindow.webContents.send("video-exported", outputPath);
   });
+});
+
+// Receive video path
+ipcMain.on("video-path", (event, videoPath) => {
+  selectedVideoPath = videoPath;
 });
