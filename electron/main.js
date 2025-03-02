@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import path from "path";
 import os from "os";
 import { fileURLToPath } from "url";
@@ -88,7 +88,7 @@ ipcMain.handle("open-video-dialog", async () => {
   return null;
 });
 
-// ✅ Render Video Using Remotion with Progress Tracking
+// ✅ Render Video & Open Output Folder
 ipcMain.handle(
   "render-remotion-video",
   async (_event, videoUrl, overlayText) => {
@@ -121,6 +121,7 @@ ipcMain.handle(
       process.on("close", (code) => {
         if (code === 0) {
           console.log("✅ Render successful!");
+          shell.showItemInFolder(outputFile); // ✅ Open the output folder with the file selected
           resolve(outputFile);
         } else {
           reject("Render failed.");
