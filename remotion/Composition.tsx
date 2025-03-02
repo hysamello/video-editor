@@ -13,21 +13,48 @@ export const MyComposition: React.FC<CompositionProps> = ({
   return (
     <AbsoluteFill style={{ backgroundColor: "black" }}>
       {/* Background Video */}
-      <Video src={videoSrc} />
+      <Video src={videoSrc} style={{ width: "100%", height: "100%" }} />
 
-      {/* Overlay */}
-      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-        <div className="ml-10 w-96 h-32 bg-black rounded-2xl text-container flex items-center gap-4 opacity-80">
-          <div className="w-36 h-36 rounded-full bg-blue-50 flex items-center justify-center">
-            <IconAnimation />
-          </div>
-          <div className="pl-4 h-full justify-center flex flex-col gap-2 text-xl text-white">
-            <p>{overlayText || "Strand Road Tramore"}</p>
-            <p>Waterford</p>
-            <p>X91 DD73</p>
-          </div>
+      {/* Overlay - Positioned at Bottom Left */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "120px", // Adjust positioning as needed
+          left: "120px",
+          display: "flex",
+          alignItems: "center",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          padding: "15px",
+          borderRadius: "12px",
+          color: "white",
+          fontSize: "20px",
+          gap: "12px",
+        }}
+      >
+        {/* Animated Icon */}
+        <div
+          style={{
+            width: "50px",
+            height: "50px",
+            borderRadius: "50%",
+            backgroundColor: "#4caf50",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <IconAnimation />
         </div>
-      </AbsoluteFill>
+
+        {/* Text Content */}
+        <div>
+          <p style={{ margin: "2px 0" }}>
+            {overlayText || "Strand Road Tramore"}
+          </p>
+          <p style={{ margin: "2px 0" }}>Waterford</p>
+          <p style={{ margin: "2px 0" }}>X91 DD73</p>
+        </div>
+      </div>
     </AbsoluteFill>
   );
 };

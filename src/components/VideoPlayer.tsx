@@ -50,10 +50,16 @@ export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
             <Player
               component={MyComposition}
               inputProps={{ videoSrc, overlayText }}
-              durationInFrames={300} // 10 seconds at 30fps
+              durationInFrames={300}
               fps={30}
               compositionWidth={1280}
               compositionHeight={720}
+              style={{
+                width: "900px", // 70% of 1280px width
+                height: "500px", // 70% of 720px height
+                margin: "auto",
+                display: "block",
+              }}
               controls
             />
           </div>
