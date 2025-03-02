@@ -1,10 +1,12 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
-import { fileURLToPath } from "url";
-import { exec } from "child_process";
 import fs from "fs";
 import os from "os";
+import { fileURLToPath } from "url";
+import { exec } from "child_process";
+import express from "express"; // ✅ Import Express
 
+// Fix __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -13,6 +15,24 @@ let selectedVideoPath = null;
 
 app.disableHardwareAcceleration();
 
+// ✅ Create an Express server to serve videos dynamically
+const videoServer = express();
+const VIDEO_PORT = 3001; // ✅ Ensure this does not conflict with Vite
+
+videoServer.get("/video", (req, res) => {
+  if (!selectedVideoPath) {
+    return res.status(404).send("No video selected");
+  }
+
+  res.sendFile(selectedVideoPath);
+});
+
+videoServer.listen(VIDEO_PORT, () => {
+  console.log(
+    `📽️ Video server running at http://localhost:${VIDEO_PORT}/video`,
+  );
+});
+
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -20,13 +40,11 @@ app.whenReady().then(() => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false,
-      enableRemoteModule: true,
       preload: path.join(__dirname, "preload.js"),
     },
   });
 
-  mainWindow.loadURL("http://localhost:5173");
+  mainWindow.loadURL("http://localhost:5174"); // ✅ Ensure this matches your Vite port
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -41,23 +59,21 @@ app.on("window-all-closed", () => {
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    app.whenReady().then(() => {
-      mainWindow = new BrowserWindow({
-        width: 1280,
-        height: 720,
-        webPreferences: {
-          nodeIntegration: false,
-          contextIsolation: true,
-          preload: path.join(__dirname, "preload.js"),
-        },
-      });
-
-      mainWindow.loadURL("http://localhost:5173");
+    mainWindow = new BrowserWindow({
+      width: 1280,
+      height: 720,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, "preload.js"),
+      },
     });
+
+    mainWindow.loadURL("http://localhost:5174");
   }
 });
 
-// Open video dialog
+// ✅ Select Video Without Copying
 ipcMain.handle("open-video-dialog", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -65,60 +81,41 @@ ipcMain.handle("open-video-dialog", async () => {
   });
 
   if (!result.canceled && result.filePaths.length > 0) {
-    selectedVideoPath = result.filePaths[0];
-    return selectedVideoPath;
-  } else {
-    return null;
+    selectedVideoPath = result.filePaths[0]; // ✅ Store the absolute path
+    console.log("✅ Selected video:", selectedVideoPath);
+    return `http://localhost:${VIDEO_PORT}/video`; // ✅ Return URL for Remotion
   }
+  return null;
 });
 
-// Save the overlay image
-ipcMain.on("save-overlay-image", (event, imageData) => {
-  const downloadsDir = path.join(os.homedir(), "Downloads");
-  const overlayPath = path.join(downloadsDir, "overlay.png");
+// ✅ Use the Absolute Path for Rendering (No Copying)
+ipcMain.handle(
+  "render-remotion-video",
+  async (_event, videoUrl, overlayText) => {
+    const outputDir = path.join(os.homedir(), "Downloads");
+    const outputFile = path.join(outputDir, "remotion_output.mp4");
 
-  const base64Data = imageData.replace(/^data:image\/png;base64,/, "");
-  fs.writeFileSync(overlayPath, base64Data, "base64");
+    return new Promise((resolve, reject) => {
+      const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
-  event.sender.send("overlay-image-saved", overlayPath);
-});
+      const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${outputFile}" --props '${JSON.stringify(
+        {
+          videoSrc: videoUrl, // ✅ Use the dynamic URL
+          overlayText,
+        },
+      )}'`;
 
-// Generate unique filename
-function getUniqueFilePath(directory, filename) {
-  const ext = path.extname(filename);
-  const name = path.basename(filename, ext);
-  let counter = 0;
-  let finalPath = path.join(directory, `${name}${ext}`);
+      console.log("🚀 Executing render command:", renderCommand);
 
-  while (fs.existsSync(finalPath)) {
-    counter++;
-    finalPath = path.join(directory, `${name} (${counter})${ext}`);
-  }
-
-  return finalPath;
-}
-
-// Export video with overlay image
-ipcMain.on("export-video-with-image", (event, imagePath) => {
-  if (!mainWindow || !selectedVideoPath) {
-    console.error("No video selected.");
-    return;
-  }
-
-  const downloadsDir = path.join(os.homedir(), "Downloads");
-  const outputFilePath = getUniqueFilePath(
-    downloadsDir,
-    "exported_video_with_overlay.mp4",
-  );
-
-  const ffmpegCommand = `ffmpeg -i "${selectedVideoPath}" -i "${imagePath}" -filter_complex "[1][0]scale2ref=w=iw:h=ih[overlay][base];[base][overlay]overlay=10:10" -codec:a copy "${outputFilePath}"`;
-
-  exec(ffmpegCommand, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error exporting video: ${error.message}`);
-      console.error(stderr);
-      return;
-    }
-    mainWindow.webContents.send("video-exported", outputFilePath);
-  });
-});
+      exec(renderCommand, (error, stdout, stderr) => {
+        if (error) {
+          console.error("❌ Error rendering video:", stderr);
+          reject(stderr);
+        } else {
+          console.log("✅ Render successful!", stdout);
+          resolve(outputFile);
+        }
+      });
+    });
+  },
+);

@@ -1,17 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electron", {
-  sendOverlayImage: (imageData) =>
-    ipcRenderer.send("save-overlay-image", imageData),
-  onOverlayImageSaved: (callback) => {
-    ipcRenderer.on("overlay-image-saved", (_event, filePath) =>
-      callback(filePath),
-    );
-  },
-  exportVideoWithImage: (imagePath) =>
-    ipcRenderer.send("export-video-with-image", imagePath),
-  onVideoExported: (callback) => {
-    ipcRenderer.on("video-exported", (_event, filePath) => callback(filePath));
-  },
   openVideoDialog: () => ipcRenderer.invoke("open-video-dialog"),
+  copyVideoToPublic: (videoPath) =>
+    ipcRenderer.invoke("copy-video-to-public", videoPath),
+  renderRemotionVideo: (videoPath, overlayText) =>
+    ipcRenderer.invoke("render-remotion-video", videoPath, overlayText),
 });

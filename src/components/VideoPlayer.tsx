@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
-import html2canvas from "html2canvas";
-import IconAnimation from "./IconAnimation.tsx";
+import { useState } from "react";
+import { Player } from "@remotion/player";
+import { MyComposition } from "../../remotion/Composition";
 
 interface VideoPlayerProps {
   overlayText: string;
@@ -8,60 +8,58 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
-  const videoRef = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const [rendering, setRendering] = useState(false);
+  const [outputVideo, setOutputVideo] = useState<string | null>(null);
 
   const handleSelectVideo = async () => {
     if (window.electron) {
-      const videoPath = await window.electron.openVideoDialog();
-      if (videoPath) {
-        setVideoSrc(`file://${videoPath}`);
-        console.log("Video path:", videoPath);
+      const videoUrl = await window.electron.openVideoDialog();
+      if (videoUrl) {
+        setVideoSrc(videoUrl);
       } else {
         console.error("No video selected.");
       }
     }
   };
 
-  const handleCaptureOverlay = async () => {
-    if (!overlayRef.current || !window.electron) return;
-
-    const canvas = await html2canvas(overlayRef.current);
-    const image = canvas.toDataURL("image/png");
-
-    window.electron.sendOverlayImage(image);
-    window.electron.onOverlayImageSaved((filePath) => {
-      console.log("Overlay saved at:", filePath);
-      window.electron.exportVideoWithImage(filePath);
-    });
+  const handleRenderVideo = async () => {
+    if (!videoSrc) return;
+    setRendering(true);
+    const outputPath = await window.electron.renderRemotionVideo(
+      videoSrc,
+      overlayText,
+    );
+    setOutputVideo(outputPath);
+    setRendering(false);
   };
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
       <button onClick={handleSelectVideo}>Select Video</button>
       {videoSrc && (
-        <div ref={videoRef} className="relative">
-          <video height="600px" controls width="100%" src={videoSrc} />
+        <>
+          {/* ✅ Use the dynamic URL */}
+          <Player
+            component={MyComposition}
+            inputProps={{ videoSrc, overlayText }}
+            durationInFrames={300} // 10 seconds at 30fps
+            fps={30}
+            compositionWidth={1280}
+            compositionHeight={720}
+            controls
+          />
 
-          {/* Overlay on top of the video */}
-          <div
-            ref={overlayRef}
-            className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none"
-          >
-            <div className="ml-10 w-96 h-32 bg-black rounded-2xl text-container flex items-center gap-4 opacity-80">
-              <div className="w-36 h-36 rounded-full bg-blue-50 flex items-center justify-center">
-                <IconAnimation />
-              </div>
-              <div className="pl-4 h-full justify-center flex flex-col gap-2 text-xl text-white">
-                <p>{overlayText || "Strand Road Tramore"}</p>
-                <p>Waterford</p>
-                <p>X91 DD73</p>
-              </div>
-            </div>
-          </div>
+          <button onClick={handleRenderVideo} disabled={rendering}>
+            {rendering ? "Rendering..." : "Export Video"}
+          </button>
+        </>
+      )}
+      {outputVideo && (
+        <div>
+          <p>Video rendered at: {outputVideo}</p>
+          <video src={outputVideo} controls width="100%" />
         </div>
       )}
-      <button onClick={handleCaptureOverlay}>Capture & Export Overlay</button>
     </div>
   );
 }

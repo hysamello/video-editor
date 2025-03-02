@@ -1,9 +1,10 @@
 export interface ElectronAPI {
-  sendOverlayImage: (imageData: string) => void; // Send overlay image data
-  onOverlayImageSaved: (callback: (filePath: string) => void) => void; // Listen for saved image path
-  exportVideoWithImage: (imagePath: string) => void; // Export video with the overlay image
-  onVideoExported: (callback: (filePath: string) => void) => void; // Listen for exported video path
   openVideoDialog: () => Promise<string | null>; // Open video selection dialog
+  copyVideoToPublic: (videoPath: string) => Promise<string | null>; // Copy video to public folder
+  renderRemotionVideo: (
+    videoPath: string,
+    overlayText: string,
+  ) => Promise<string>; // Render video using Remotion
 }
 
 declare global {
