@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Player } from "@remotion/player";
 import { MyComposition } from "../../remotion/Composition";
 
-interface VideoPlayerProps {
-  overlayText: string;
-}
-
-export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
+export default function VideoPlayer() {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [overlayText, setOverlayText] = useState(
+    "Strand Road Tramore\nWaterford\nX91 DD73",
+  );
   const [rendering, setRendering] = useState(false);
   const [progress, setProgress] = useState<number>(0);
 
@@ -40,12 +39,28 @@ export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", textAlign: "center" }}>
+    <div style={{ textAlign: "center", position: "relative" }}>
       <button onClick={handleSelectVideo}>Select Video</button>
 
       {videoSrc && (
         <>
-          {/* ✅ Reduce Player size to 70% */}
+          {/* ✅ Textarea for multi-line input */}
+          <textarea
+            value={overlayText}
+            onChange={(e) => setOverlayText(e.target.value)}
+            placeholder="Enter overlay text..."
+            style={{
+              width: "80%",
+              height: "100px",
+              margin: "10px auto",
+              display: "block",
+              resize: "vertical",
+              padding: "10px",
+              fontSize: "16px",
+            }}
+          />
+
+          {/* ✅ Video Player */}
           <div style={{ transform: "scale(0.7)", transformOrigin: "center" }}>
             <Player
               component={MyComposition}
@@ -54,12 +69,6 @@ export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
               fps={30}
               compositionWidth={1280}
               compositionHeight={720}
-              style={{
-                width: "900px", // 70% of 1280px width
-                height: "500px", // 70% of 720px height
-                margin: "auto",
-                display: "block",
-              }}
               controls
             />
           </div>

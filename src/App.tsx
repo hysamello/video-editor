@@ -1,10 +1,10 @@
-import OverlayEditor from "./components/OverlayEditor";
+import VideoPlayer from "./components/VideoPlayer.tsx";
 
 function App() {
   return (
-    <div>
+    <div style={{ textAlign: "center" }}>
       <h1>Video Editor</h1>
-      <OverlayEditor />
+      <VideoPlayer />
     </div>
   );
 }
