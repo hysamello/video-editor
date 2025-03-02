@@ -9,7 +9,7 @@ interface VideoPlayerProps {
 export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
-  const [outputVideo, setOutputVideo] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
 
   const handleSelectVideo = async () => {
     if (window.electron) {
@@ -25,40 +25,69 @@ export default function VideoPlayer({ overlayText }: VideoPlayerProps) {
   const handleRenderVideo = async () => {
     if (!videoSrc) return;
     setRendering(true);
-    const outputPath = await window.electron.renderRemotionVideo(
+    setProgress(0); // Reset progress
+
+    // Track rendering progress from Remotion logs
+    await window.electron.renderRemotionVideo(
       videoSrc,
       overlayText,
+      (newProgress: number) => {
+        setProgress(newProgress);
+      },
     );
-    setOutputVideo(outputPath);
+
     setRendering(false);
   };
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <div style={{ position: "relative", width: "100%", textAlign: "center" }}>
       <button onClick={handleSelectVideo}>Select Video</button>
+
       {videoSrc && (
         <>
-          {/* ✅ Use the dynamic URL */}
-          <Player
-            component={MyComposition}
-            inputProps={{ videoSrc, overlayText }}
-            durationInFrames={300} // 10 seconds at 30fps
-            fps={30}
-            compositionWidth={1280}
-            compositionHeight={720}
-            controls
-          />
+          {/* ✅ Reduce Player size to 70% */}
+          <div style={{ transform: "scale(0.7)", transformOrigin: "center" }}>
+            <Player
+              component={MyComposition}
+              inputProps={{ videoSrc, overlayText }}
+              durationInFrames={300} // 10 seconds at 30fps
+              fps={30}
+              compositionWidth={1280}
+              compositionHeight={720}
+              controls
+            />
+          </div>
 
           <button onClick={handleRenderVideo} disabled={rendering}>
             {rendering ? "Rendering..." : "Export Video"}
           </button>
+
+          {/* ✅ Show progress bar while rendering */}
+          {rendering && (
+            <div style={{ marginTop: 10 }}>
+              <p>Rendering: {progress}%</p>
+              <div
+                style={{
+                  width: "70%",
+                  height: "10px",
+                  background: "#ddd",
+                  margin: "auto",
+                  borderRadius: "5px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${progress}%`,
+                    height: "100%",
+                    background: "#4caf50",
+                    transition: "width 0.5s",
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </>
-      )}
-      {outputVideo && (
-        <div>
-          <p>Video rendered at: {outputVideo}</p>
-          <video src={outputVideo} controls width="100%" />
-        </div>
       )}
     </div>
   );

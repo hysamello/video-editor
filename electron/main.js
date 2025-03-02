@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "path";
-import fs from "fs";
 import os from "os";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
@@ -33,6 +32,7 @@ videoServer.listen(VIDEO_PORT, () => {
   );
 });
 
+// ✅ Electron App Initialization
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -44,7 +44,7 @@ app.whenReady().then(() => {
     },
   });
 
-  mainWindow.loadURL("http://localhost:5174"); // ✅ Ensure this matches your Vite port
+  mainWindow.loadURL("http://localhost:5174"); // ✅ Ensure this matches Vite's port
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -73,7 +73,7 @@ app.on("activate", () => {
   }
 });
 
-// ✅ Select Video Without Copying
+// ✅ Select Video & Stream via Express
 ipcMain.handle("open-video-dialog", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -88,32 +88,42 @@ ipcMain.handle("open-video-dialog", async () => {
   return null;
 });
 
-// ✅ Use the Absolute Path for Rendering (No Copying)
+// ✅ Render Video Using Remotion with Progress Tracking
 ipcMain.handle(
   "render-remotion-video",
   async (_event, videoUrl, overlayText) => {
     const outputDir = path.join(os.homedir(), "Downloads");
     const outputFile = path.join(outputDir, "remotion_output.mp4");
+    const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
     return new Promise((resolve, reject) => {
-      const remotionEntry = path.join(__dirname, "../remotion/index.ts");
-
       const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${outputFile}" --props '${JSON.stringify(
-        {
-          videoSrc: videoUrl, // ✅ Use the dynamic URL
-          overlayText,
-        },
+        { videoSrc: videoUrl, overlayText },
       )}'`;
 
       console.log("🚀 Executing render command:", renderCommand);
 
-      exec(renderCommand, (error, stdout, stderr) => {
-        if (error) {
-          console.error("❌ Error rendering video:", stderr);
-          reject(stderr);
-        } else {
-          console.log("✅ Render successful!", stdout);
+      const process = exec(renderCommand);
+
+      process.stdout.on("data", (data) => {
+        console.log(data);
+        const match = data.match(/Rendered (\d+)\/(\d+)/);
+        if (match && mainWindow) {
+          const progress = (parseInt(match[1]) / parseInt(match[2])) * 100;
+          mainWindow.webContents.send("render-progress", progress);
+        }
+      });
+
+      process.stderr.on("data", (data) => {
+        console.error("Error:", data);
+      });
+
+      process.on("close", (code) => {
+        if (code === 0) {
+          console.log("✅ Render successful!");
           resolve(outputFile);
+        } else {
+          reject("Render failed.");
         }
       });
     });
