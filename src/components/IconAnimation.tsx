@@ -1,6 +1,13 @@
-import "./IconAnimation.css";
+import { useCurrentFrame, interpolate } from "remotion";
 
 const IconAnimation = () => {
+  const frame = useCurrentFrame(); // Get the current frame number
+
+  // Rotate from 0 to 360 degrees in 60 frames and repeat
+  const rotate = interpolate(frame % 60, [0, 60], [0, 360], {
+    extrapolateRight: "extend", // Allow smooth continuation
+  });
+
   return (
     <div
       style={{
@@ -11,39 +18,19 @@ const IconAnimation = () => {
         justifyContent: "center",
       }}
     >
-      <svg
-        style={{
-          position: "absolute",
-          top: "5px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "75px",
-          height: "200px",
-        }}
-        viewBox="0 0 200 100"
-      >
-        <ellipse
-          cx="100"
-          cy="50"
-          rx="90"
-          ry="40"
-          className="animated-ellipse"
-        />
-      </svg>
-
+      {/* Rotating Icon (Now frame-based) */}
       <div
         style={{
           position: "absolute",
           top: "4px",
           left: "50%",
-          transform: "translateX(-50%)",
+          transform: `translateX(-50%) rotate(${rotate}deg)`, // Use frame-based rotation
         }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="currentColor"
-          className="icon rotating-icon"
           style={{ width: "30px", height: "30px", color: "black" }}
         >
           <path
@@ -54,13 +41,17 @@ const IconAnimation = () => {
         </svg>
       </div>
 
+      {/* Blinking Circle Animation (Now frame-based) */}
       <div
-        className="circle"
         style={{
+          width: "17px",
+          height: "17px",
+          borderRadius: "50%",
           position: "absolute",
           top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
+          backgroundColor: frame % 30 < 15 ? "black" : "white", // Toggle every 15 frames
         }}
       />
     </div>
