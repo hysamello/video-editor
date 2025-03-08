@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["electron.d.ts","src"]
+  "include": ["electron.d.ts","src", "remotion"]
 }
