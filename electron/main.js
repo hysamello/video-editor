@@ -94,15 +94,18 @@ ipcMain.handle(
   "render-remotion-video",
   async (_event, videoUrl, overlayText) => {
     const downloadsDir = path.join(os.homedir(), "Downloads");
-    const overlayOutput = path.join(downloadsDir, "overlay_output.mp4");
+    const tempDir = os.tmpdir(); // ✅ Use OS temporary directory
+
+    const overlayOutput = path.join(tempDir, "overlay_output.mp4");
     const finalOutputFile = path.join(downloadsDir, "final_output.mp4");
-    const thumbnailFile = path.join(downloadsDir, "thumbnail.jpg");
+    const finalOutputWithThumb = finalOutputFile.replace(".mp4", "_thumb.mp4");
+    const thumbnailFile = path.join(tempDir, "thumbnail.jpg");
     const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
     const overlayDurationSec = 10;
     const durationInFrames = 300;
 
-    // ✅ Remotion render overlay video (first 10 seconds only)
+    // ✅ Remotion render overlay video (first 10 seconds only) to temp
     const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${overlayOutput}" --props '${JSON.stringify(
       { videoSrc: videoUrl, overlayText, durationInFrames },
     )}'`;
@@ -158,28 +161,27 @@ ipcMain.handle(
             console.warn(
               "Thumbnail extraction failed. Proceeding without thumbnail.",
             );
-            resolve();
-          } else {
-            resolve();
           }
+          resolve();
         },
       );
     });
 
-    // ✅ Clearly use FFmpeg to merge videos (keeping original resolution & quality)
+    // ✅ FFmpeg merge videos in temp directory
+    const mergedTempOutput = path.join(tempDir, "merged_output.mp4");
     const ffmpegCommand = `
-ffmpeg -y \
-  -i "${overlayOutput}" \
-  -i "${selectedVideoPath}" \
-  -filter_complex "[0:v]scale=${originalResolution}[v0]; \
-    [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
-    [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
-    [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-  -map "[v]" -map "[a]" \
-  -c:v libx264 -crf 18 -preset veryfast \
-  -c:a aac -b:a 320k \
-  "${finalOutputFile}"
-`;
+      ffmpeg -y \
+      -i "${overlayOutput}" \
+      -i "${selectedVideoPath}" \
+      -filter_complex "[0:v]scale=${originalResolution}[v0]; \
+        [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
+        [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
+        [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
+      -map "[v]" -map "[a]" \
+      -c:v libx264 -crf 18 -preset veryfast \
+      -c:a aac -b:a 320k \
+      "${mergedTempOutput}"
+    `;
 
     await new Promise((resolve, reject) => {
       const ffmpegProcess = exec(ffmpegCommand);
@@ -204,44 +206,52 @@ ffmpeg -y \
       );
 
       ffmpegProcess.on("close", (code) => {
-        if (code === 0) {
-          resolve(finalOutputFile);
-        } else {
-          reject(`FFmpeg merge failed (code: ${code})`);
-        }
+        code === 0
+          ? resolve(mergedTempOutput)
+          : reject(`FFmpeg merge failed (code: ${code})`);
       });
     });
 
-    // ✅ Reattach thumbnail clearly (if available)
-    if (fs.existsSync(thumbnailFile)) {
+    // ✅ Reattach thumbnail (if available)
+    const thumbnailExists = fs.existsSync(thumbnailFile);
+
+    if (thumbnailExists) {
       const thumbnailCommand = `
         ffmpeg -y \
-          -i "${finalOutputFile}" \
-          -i "${thumbnailFile}" \
-          -map 0 -map 1 \
-          -c copy \
-          -disposition:v:1 attached_pic \
-          "${finalOutputFile.replace(".mp4", "_thumb.mp4")}"
+        -i "${mergedTempOutput}" \
+        -i "${thumbnailFile}" \
+        -map 0 -map 1 \
+        -c copy \
+        -disposition:v:1 attached_pic \
+        "${finalOutputWithThumb}"
       `;
 
-      await new Promise((resolve, reject) => {
+      await new Promise((resolve) => {
         exec(thumbnailCommand, (err) => {
           if (err) {
             console.warn(
-              "Thumbnail embedding failed, proceeding without thumbnail.",
+              "Thumbnail embedding failed. Exporting without thumbnail.",
             );
-            resolve();
+            fs.copyFileSync(mergedTempOutput, finalOutputFile);
+            shell.showItemInFolder(finalOutputFile);
           } else {
-            shell.showItemInFolder(
-              finalOutputFile.replace(".mp4", "_thumb.mp4"),
-            );
-            resolve();
+            shell.showItemInFolder(finalOutputWithThumb);
           }
+          resolve();
         });
       });
     } else {
+      fs.copyFileSync(mergedTempOutput, finalOutputFile);
       shell.showItemInFolder(finalOutputFile);
-      resolve(finalOutputFile);
     }
+
+    // ✅ Clearly remove temporary files
+    [overlayOutput, mergedTempOutput, thumbnailFile].forEach((file) => {
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
+    });
+
+    return thumbnailExists ? finalOutputWithThumb : finalOutputFile;
   },
 );
