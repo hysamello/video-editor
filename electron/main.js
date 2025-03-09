@@ -118,7 +118,12 @@ ipcMain.handle(
 
     // ✅ Run Remotion using spawn
     await new Promise((resolve, reject) => {
-      const renderProcess = spawn("npx", [
+      const npxPath = path.join(process.env.APPDATA, "npm", "npx.cmd");
+      console.log("Executing Remotion render with:", npxPath);
+
+      const command = process.platform === "win32" ? "npx.cmd" : "npx";
+
+      const renderProcess = spawn(command, [
         "remotion",
         "render",
         remotionEntry,
@@ -126,7 +131,8 @@ ipcMain.handle(
         overlayOutput,
         "--props",
         propsFilePath,
-      ]);
+      ], { shell: true });
+
 
       renderProcess.stdout.on("data", (data) => {
         const match = data.toString().match(/Rendered (\d+)\/(\d+)/);
