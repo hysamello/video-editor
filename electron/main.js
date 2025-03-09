@@ -114,10 +114,18 @@ ipcMain.handle(
     const overlayDurationSec = 10;
     const durationInFrames = 300;
 
-    // ✅ Remotion render overlay video (first 10 seconds only) to temp
-    const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${overlayOutput}" --props '${JSON.stringify(
-      { videoSrc: videoUrl, overlayText, durationInFrames },
-    )}'`;
+    // ✅ Write props to temporary file
+    const props = { videoSrc: videoUrl, overlayText, durationInFrames };
+    const propsFilePath = path.join(os.tmpdir(), "remotion_props.json");
+
+    await new Promise((resolve, reject) => {
+      fs.writeFile(propsFilePath, JSON.stringify(props), "utf-8", (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${overlayOutput}" --props=${propsFilePath}`;
 
     await new Promise((resolve, reject) => {
       const renderProcess = exec(renderCommand);
