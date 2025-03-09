@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import path from "path";
+import fs from "fs";
 import os from "os";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
@@ -95,11 +96,13 @@ ipcMain.handle(
     const downloadsDir = path.join(os.homedir(), "Downloads");
     const overlayOutput = path.join(downloadsDir, "overlay_output.mp4");
     const finalOutputFile = path.join(downloadsDir, "final_output.mp4");
+    const thumbnailFile = path.join(downloadsDir, "thumbnail.jpg");
     const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
     const overlayDurationSec = 10;
     const durationInFrames = 300;
 
+    // ✅ Remotion render overlay video (first 10 seconds only)
     const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${overlayOutput}" --props '${JSON.stringify(
       { videoSrc: videoUrl, overlayText, durationInFrames },
     )}'`;
@@ -135,7 +138,7 @@ ipcMain.handle(
       );
     });
 
-    // ✅ Get original video resolution dynamically
+    // ✅ Get original video resolution
     const originalResolution = await new Promise((resolve, reject) => {
       exec(
         `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${selectedVideoPath}"`,
@@ -146,22 +149,39 @@ ipcMain.handle(
       );
     });
 
-    // ✅ Now dynamically scale overlay video to original resolution clearly
-    const ffmpegCommand = `
-    ffmpeg -y \
-      -i "${overlayOutput}" \
-      -i "${selectedVideoPath}" \
-      -filter_complex "[0:v]scale=${originalResolution}[v0]; \
-        [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
-        [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
-        [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-      -map "[v]" -map "[a]" \
-      -c:v libx264 -crf 18 -preset veryfast \
-      -c:a aac -b:a 320k \
-      "${finalOutputFile}"
-    `;
+    // ✅ Extract thumbnail (cover art) from original video
+    await new Promise((resolve) => {
+      exec(
+        `ffmpeg -y -i "${selectedVideoPath}" -vf "thumbnail" -frames:v 1 "${thumbnailFile}"`,
+        (err) => {
+          if (err) {
+            console.warn(
+              "Thumbnail extraction failed. Proceeding without thumbnail.",
+            );
+            resolve();
+          } else {
+            resolve();
+          }
+        },
+      );
+    });
 
-    return new Promise((resolve, reject) => {
+    // ✅ Clearly use FFmpeg to merge videos (keeping original resolution & quality)
+    const ffmpegCommand = `
+ffmpeg -y \
+  -i "${overlayOutput}" \
+  -i "${selectedVideoPath}" \
+  -filter_complex "[0:v]scale=${originalResolution}[v0]; \
+    [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
+    [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
+    [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
+  -map "[v]" -map "[a]" \
+  -c:v libx264 -crf 18 -preset veryfast \
+  -c:a aac -b:a 320k \
+  "${finalOutputFile}"
+`;
+
+    await new Promise((resolve, reject) => {
       const ffmpegProcess = exec(ffmpegCommand);
 
       ffmpegProcess.stderr.on("data", (data) => {
@@ -185,12 +205,43 @@ ipcMain.handle(
 
       ffmpegProcess.on("close", (code) => {
         if (code === 0) {
-          shell.showItemInFolder(finalOutputFile);
           resolve(finalOutputFile);
         } else {
           reject(`FFmpeg merge failed (code: ${code})`);
         }
       });
     });
+
+    // ✅ Reattach thumbnail clearly (if available)
+    if (fs.existsSync(thumbnailFile)) {
+      const thumbnailCommand = `
+        ffmpeg -y \
+          -i "${finalOutputFile}" \
+          -i "${thumbnailFile}" \
+          -map 0 -map 1 \
+          -c copy \
+          -disposition:v:1 attached_pic \
+          "${finalOutputFile.replace(".mp4", "_thumb.mp4")}"
+      `;
+
+      await new Promise((resolve, reject) => {
+        exec(thumbnailCommand, (err) => {
+          if (err) {
+            console.warn(
+              "Thumbnail embedding failed, proceeding without thumbnail.",
+            );
+            resolve();
+          } else {
+            shell.showItemInFolder(
+              finalOutputFile.replace(".mp4", "_thumb.mp4"),
+            );
+            resolve();
+          }
+        });
+      });
+    } else {
+      shell.showItemInFolder(finalOutputFile);
+      resolve(finalOutputFile);
+    }
   },
 );
