@@ -5,15 +5,17 @@ import os from "os";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import express from "express"; // ✅ Import Express
+import ffmpeg from "@ffmpeg-installer/ffmpeg";
+import ffprobe from "@ffprobe-installer/ffprobe";
+
 
 // Fix __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ✅ Dynamically reference bundled FFmpeg binaries
-const isWindows = process.platform === "win32";
-const ffmpegPath = path.join(__dirname, "resources", "bin", isWindows ? "ffmpeg.exe" : "ffmpeg");
-const ffprobePath = path.join(__dirname, "resources", "bin", isWindows ? "ffprobe.exe" : "ffprobe");
+const ffmpegPath = ffmpeg.path;
+const ffprobePath = ffprobe.path;
 
 let mainWindow = null;
 let selectedVideoPath = null;
