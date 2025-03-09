@@ -19,6 +19,9 @@ const ffprobePath = path.join(__dirname, "resources", "bin", isWindows ? "ffprob
 exec(`"${ffmpegPath}" -i input.mp4 output.mp4`);
 exec(`"${ffprobePath}" -i input.mp4 -show_entries format=duration`);
 
+let mainWindow = null;
+let selectedVideoPath = null;
+
 app.disableHardwareAcceleration();
 
 // ✅ Create an Express server to serve videos dynamically
