@@ -10,8 +10,14 @@ import express from "express"; // ✅ Import Express
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let mainWindow = null;
-let selectedVideoPath = null;
+// ✅ Dynamically reference bundled FFmpeg binaries
+const isWindows = process.platform === "win32";
+const ffmpegPath = path.join(__dirname, "resources", "bin", isWindows ? "ffmpeg.exe" : "ffmpeg");
+const ffprobePath = path.join(__dirname, "resources", "bin", isWindows ? "ffprobe.exe" : "ffprobe");
+
+// ✅ Example usage (replace existing FFmpeg commands)
+exec(`"${ffmpegPath}" -i input.mp4 output.mp4`);
+exec(`"${ffprobePath}" -i input.mp4 -show_entries format=duration`);
 
 app.disableHardwareAcceleration();
 

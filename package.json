@@ -1,15 +1,49 @@
 {
   "name": "video-editor",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Desktop video editor built with Electron, Vite, and Remotion",
   "type": "module",
+  "main": "electron/main.js",
+  "homepage": "https://example.com",
+  "author": {
+    "name": "Pedro  Rosa",
+    "email": "pedro@rosello.com"
+  },
   "scripts": {
     "dev": "vite",
     "electron": "electron electron/main.js",
     "start": "npm run dev & npm run electron",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:build": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.rosello.videoeditor",
+    "productName": "VideoEditor",
+    "directories": {
+      "buildResources": "resources",
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "resources/bin/**/*",
+      "remotion/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.video"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "maintainer": "Pedro Rosa <pedrol@rosello.com>",
+      "target": ["AppImage", "deb"],
+      "category": "Video"
+    }
   },
   "dependencies": {
     "@ffmpeg/core": "^0.12.10",
@@ -32,6 +66,7 @@
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "electron": "^34.2.0",
+    "electron-builder": "^24.13.3",
     "eslint": "^9.19.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
