@@ -3,11 +3,10 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 import { fileURLToPath } from "url";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import express from "express"; // ✅ Import Express
 import ffmpeg from "@ffmpeg-installer/ffmpeg";
 import ffprobe from "@ffprobe-installer/ffprobe";
-
 
 // Fix __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -101,7 +100,7 @@ ipcMain.handle(
   "render-remotion-video",
   async (_event, videoUrl, overlayText) => {
     const downloadsDir = path.join(os.homedir(), "Downloads");
-    const tempDir = os.tmpdir(); // ✅ Use OS temporary directory
+    const tempDir = os.tmpdir();
 
     const overlayOutput = path.join(tempDir, "overlay_output.mp4");
     const finalOutputFile = path.join(downloadsDir, "final_output.mp4");
@@ -114,22 +113,23 @@ ipcMain.handle(
 
     // ✅ Write props to temporary file
     const props = { videoSrc: videoUrl, overlayText, durationInFrames };
-    const propsFilePath = path.join(os.tmpdir(), "remotion_props.json");
+    const propsFilePath = path.join(tempDir, "remotion_props.json");
+    await fs.promises.writeFile(propsFilePath, JSON.stringify(props), "utf-8");
 
+    // ✅ Run Remotion using spawn
     await new Promise((resolve, reject) => {
-      fs.writeFile(propsFilePath, JSON.stringify(props), "utf-8", (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-
-    const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${overlayOutput}" --props=${propsFilePath}`;
-
-    await new Promise((resolve, reject) => {
-      const renderProcess = exec(renderCommand);
+      const renderProcess = spawn("npx", [
+        "remotion",
+        "render",
+        remotionEntry,
+        "MyVideo",
+        overlayOutput,
+        "--props",
+        propsFilePath,
+      ]);
 
       renderProcess.stdout.on("data", (data) => {
-        const match = data.match(/Rendered (\d+)\/(\d+)/);
+        const match = data.toString().match(/Rendered (\d+)\/(\d+)/);
         if (match && mainWindow) {
           const progress = (parseInt(match[1]) / parseInt(match[2])) * 50;
           mainWindow.webContents.send("render-progress", Math.floor(progress));
@@ -137,7 +137,7 @@ ipcMain.handle(
       });
 
       renderProcess.stderr.on("data", (data) =>
-        console.error("Remotion stderr:", data),
+        console.error("Remotion stderr:", data.toString()),
       );
 
       renderProcess.on("close", (code) => {
@@ -147,62 +147,119 @@ ipcMain.handle(
 
     // ✅ Get original video duration
     const videoDuration = await new Promise((resolve, reject) => {
-      exec(
-        `"${ffprobePath}" -i "${selectedVideoPath}" -show_entries format=duration -v quiet -of csv="p=0"`,
-        (err, stdout) => {
-          if (err) reject(err);
-          else resolve(parseFloat(stdout.trim()));
-        },
+      let output = "";
+      const probeProcess = spawn(ffprobePath, [
+        "-i",
+        selectedVideoPath,
+        "-show_entries",
+        "format=duration",
+        "-v",
+        "quiet",
+        "-of",
+        "csv=p=0",
+      ]);
+
+      probeProcess.stdout.on("data", (data) => (output += data));
+      probeProcess.stderr.on("data", (data) =>
+        console.error("FFprobe stderr:", data.toString()),
       );
+
+      probeProcess.on("close", (code) => {
+        code === 0
+          ? resolve(parseFloat(output.trim()))
+          : reject("FFprobe failed");
+      });
     });
 
     // ✅ Get original video resolution
     const originalResolution = await new Promise((resolve, reject) => {
-      exec(
-        `"${ffprobePath}" -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${selectedVideoPath}"`,
-        (err, stdout) => {
-          if (err) reject(err);
-          else resolve(stdout.trim());
-        },
+      let output = "";
+      const probeProcess = spawn(ffprobePath, [
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "csv=s=x:p=0",
+        selectedVideoPath,
+      ]);
+
+      probeProcess.stdout.on("data", (data) => (output += data));
+      probeProcess.stderr.on("data", (data) =>
+        console.error("FFprobe stderr:", data.toString()),
       );
+
+      probeProcess.on("close", (code) => {
+        code === 0 ? resolve(output.trim()) : reject("FFprobe failed");
+      });
     });
 
     // ✅ Extract thumbnail (cover art) from original video
     await new Promise((resolve) => {
-      exec(
-        `"${ffmpegPath}" -y -i "${selectedVideoPath}" -vf "thumbnail" -frames:v 1 "${thumbnailFile}"`,
-        (err) => {
-          if (err) {
-            console.warn(
-              "Thumbnail extraction failed. Proceeding without thumbnail.",
-            );
-          }
-          resolve();
-        },
+      const thumbnailProcess = spawn(ffmpegPath, [
+        "-y",
+        "-i",
+        selectedVideoPath,
+        "-vf",
+        "thumbnail",
+        "-frames:v",
+        "1",
+        thumbnailFile,
+      ]);
+
+      thumbnailProcess.stderr.on("data", (data) =>
+        console.error("FFmpeg stderr:", data.toString()),
       );
+
+      thumbnailProcess.on("close", (code) => {
+        if (code !== 0) {
+          console.warn(
+            "Thumbnail extraction failed. Proceeding without thumbnail.",
+          );
+        }
+        resolve();
+      });
     });
 
     // ✅ FFmpeg merge videos in temp directory
     const mergedTempOutput = path.join(tempDir, "merged_output.mp4");
-    const ffmpegCommand = `
-      "${ffmpegPath}" -y \
-      -i "${overlayOutput}" \
-      -i "${selectedVideoPath}" \
-      -filter_complex "[0:v]scale=${originalResolution}[v0]; \
-        [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
-        [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
-        [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-      -map "[v]" -map "[a]" \
-      -c:v libx264 -crf 18 -preset veryfast \
-      -c:a aac -b:a 320k \
-      "${mergedTempOutput}"
-    `;
+    const ffmpegArgs = [
+      "-y",
+      "-i",
+      overlayOutput,
+      "-i",
+      selectedVideoPath,
+      "-filter_complex",
+      `[0:v]scale=${originalResolution}[v0]; [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]`,
+      "-map",
+      "[v]",
+      "-map",
+      "[a]",
+      "-c:v",
+      "libx264",
+      "-crf",
+      "18",
+      "-preset",
+      "veryfast",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "320k",
+      mergedTempOutput,
+    ];
+
+    console.log("Executing FFmpeg with arguments:", ffmpegArgs);
 
     await new Promise((resolve, reject) => {
-      const ffmpegProcess = exec(ffmpegCommand);
+      const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs, { shell: false });
 
       ffmpegProcess.stderr.on("data", (data) => {
-        const match = data.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+        console.error("FFmpeg stderr:", data.toString());
+
+        // ✅ Update progress bar based on FFmpeg time processing
+        const match = data.toString().match(/time=(\d+):(\d+):(\d+\.\d+)/);
         if (match && mainWindow) {
           const hours = parseInt(match[1]);
           const minutes = parseInt(match[2]);
@@ -216,10 +273,6 @@ ipcMain.handle(
         }
       });
 
-      ffmpegProcess.stderr.on("data", (data) =>
-        console.error("FFmpeg stderr:", data),
-      );
-
       ffmpegProcess.on("close", (code) => {
         code === 0
           ? resolve(mergedTempOutput)
@@ -231,19 +284,30 @@ ipcMain.handle(
     const thumbnailExists = fs.existsSync(thumbnailFile);
 
     if (thumbnailExists) {
-      const thumbnailCommand = `
-        "${ffmpegPath}" -y \
-        -i "${mergedTempOutput}" \
-        -i "${thumbnailFile}" \
-        -map 0 -map 1 \
-        -c copy \
-        -disposition:v:1 attached_pic \
-        "${finalOutputWithThumb}"
-      `;
-
       await new Promise((resolve) => {
-        exec(thumbnailCommand, (err) => {
-          if (err) {
+        const thumbnailProcess = spawn(ffmpegPath, [
+          "-y",
+          "-i",
+          mergedTempOutput,
+          "-i",
+          thumbnailFile,
+          "-map",
+          "0",
+          "-map",
+          "1",
+          "-c",
+          "copy",
+          "-disposition:v:1",
+          "attached_pic",
+          finalOutputWithThumb,
+        ]);
+
+        thumbnailProcess.stderr.on("data", (data) =>
+          console.error("FFmpeg stderr:", data.toString()),
+        );
+
+        thumbnailProcess.on("close", (code) => {
+          if (code !== 0) {
             console.warn(
               "Thumbnail embedding failed. Exporting without thumbnail.",
             );
@@ -260,7 +324,7 @@ ipcMain.handle(
       shell.showItemInFolder(finalOutputFile);
     }
 
-    // ✅ Clearly remove temporary files
+    // ✅ Clean up temporary files
     [overlayOutput, mergedTempOutput, thumbnailFile].forEach((file) => {
       if (fs.existsSync(file)) {
         fs.unlinkSync(file);
