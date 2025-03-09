@@ -124,7 +124,7 @@ ipcMain.handle(
       });
     });
 
-    // ✅ Get original video duration (clearly define videoDuration here)
+    // ✅ Get original video duration
     const videoDuration = await new Promise((resolve, reject) => {
       exec(
         `ffprobe -i "${selectedVideoPath}" -show_entries format=duration -v quiet -of csv="p=0"`,
@@ -135,17 +135,31 @@ ipcMain.handle(
       );
     });
 
+    // ✅ Get original video resolution dynamically
+    const originalResolution = await new Promise((resolve, reject) => {
+      exec(
+        `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${selectedVideoPath}"`,
+        (err, stdout) => {
+          if (err) reject(err);
+          else resolve(stdout.trim());
+        },
+      );
+    });
+
+    // ✅ Now dynamically scale overlay video to original resolution clearly
     const ffmpegCommand = `
     ffmpeg -y \
-    -i "${overlayOutput}" \
-    -i "${selectedVideoPath}" \
-    -filter_complex "[0:v]scale=1920:1080[v0]; \
-      [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
-      [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
-      [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
-    -map "[v]" -map "[a]" \
-    "${finalOutputFile}"
-  `;
+      -i "${overlayOutput}" \
+      -i "${selectedVideoPath}" \
+      -filter_complex "[0:v]scale=${originalResolution}[v0]; \
+        [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
+        [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
+        [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
+      -map "[v]" -map "[a]" \
+      -c:v libx264 -crf 18 -preset veryfast \
+      -c:a aac -b:a 320k \
+      "${finalOutputFile}"
+    `;
 
     return new Promise((resolve, reject) => {
       const ffmpegProcess = exec(ffmpegCommand);
