@@ -42,41 +42,43 @@ export const MyComposition: React.FC<CompositionProps> = ({
       <Video src={videoSrc} style={{ width: "100%", height: "100%" }} />
 
       {/* ✅ Overlay - Positioned at Bottom Left with Animation */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "120px", // Adjust positioning as needed
-          left: "120px",
-          display: "flex",
-          alignItems: "center",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          padding: "15px",
-          borderRadius: "12px",
-          color: "white",
-          fontSize: "20px",
-          gap: "12px",
-          transform: `translateY(${translateY}px)`,
-          opacity,
-        }}
-      >
-        {/* Animated Icon */}
+      {frame < 300 && (
         <div
           style={{
-            width: "50px",
-            height: "50px",
-            borderRadius: "50%",
-            backgroundColor: "#4caf50",
+            position: "absolute",
+            bottom: "120px", // Adjust positioning as needed
+            left: "120px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            padding: "15px",
+            borderRadius: "12px",
+            color: "white",
+            fontSize: "20px",
+            gap: "12px",
+            transform: `translateY(${translateY}px)`,
+            opacity,
           }}
         >
-          <IconAnimation />
-        </div>
+          {/* Animated Icon */}
+          <div
+            style={{
+              width: "50px",
+              height: "50px",
+              borderRadius: "50%",
+              backgroundColor: "#4caf50",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <IconAnimation />
+          </div>
 
-        {/* ✅ Multi-line text with proper formatting */}
-        <div style={{ whiteSpace: "pre-line" }}>{overlayText}</div>
-      </div>
+          {/* ✅ Multi-line text with proper formatting */}
+          <div style={{ whiteSpace: "pre-line" }}>{overlayText}</div>
+        </div>
+      )}
     </AbsoluteFill>
   );
 };

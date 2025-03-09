@@ -7,6 +7,7 @@ export default function VideoPlayer() {
   const [overlayText, setOverlayText] = useState(
     "Strand Road Tramore\nWaterford\nX91 DD73",
   );
+  const [durationInFrames, setDurationInFrames] = useState(300);
   const [rendering, setRendering] = useState(false);
   const [progress, setProgress] = useState<number>(0);
 
@@ -15,8 +16,16 @@ export default function VideoPlayer() {
       const videoUrl = await window.electron.openVideoDialog();
       if (videoUrl) {
         setVideoSrc(videoUrl);
-      } else {
-        console.error("No video selected.");
+
+        const videoElement = document.createElement("video");
+        videoElement.src = videoUrl;
+        videoElement.load();
+
+        videoElement.onloadedmetadata = () => {
+          const totalFrames = Math.floor(videoElement.duration * 30);
+          setDurationInFrames(totalFrames);
+          console.log("🎬 Duration in Frames:", totalFrames);
+        };
       }
     }
   };
@@ -24,15 +33,12 @@ export default function VideoPlayer() {
   const handleRenderVideo = async () => {
     if (!videoSrc) return;
     setRendering(true);
-    setProgress(0); // Reset progress
+    setProgress(0);
 
-    // Track rendering progress from Remotion logs
     await window.electron.renderRemotionVideo(
       videoSrc,
       overlayText,
-      (newProgress: number) => {
-        setProgress(newProgress);
-      },
+      (newProgress) => setProgress(newProgress),
     );
 
     setRendering(false);
@@ -64,8 +70,8 @@ export default function VideoPlayer() {
           <div style={{ transform: "scale(0.7)", transformOrigin: "center" }}>
             <Player
               component={MyComposition}
-              inputProps={{ videoSrc, overlayText }}
-              durationInFrames={300}
+              inputProps={{ videoSrc, overlayText, durationInFrames }}
+              durationInFrames={durationInFrames}
               fps={30}
               compositionWidth={1280}
               compositionHeight={720}

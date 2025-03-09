@@ -69,7 +69,7 @@ app.on("activate", () => {
       },
     });
 
-    mainWindow.loadURL("http://localhost:5174");
+    mainWindow.loadURL("http://localhost:5173");
   }
 });
 
@@ -92,39 +92,89 @@ ipcMain.handle("open-video-dialog", async () => {
 ipcMain.handle(
   "render-remotion-video",
   async (_event, videoUrl, overlayText) => {
-    const outputDir = path.join(os.homedir(), "Downloads");
-    const outputFile = path.join(outputDir, "remotion_output.mp4");
+    const downloadsDir = path.join(os.homedir(), "Downloads");
+    const overlayOutput = path.join(downloadsDir, "overlay_output.mp4");
+    const finalOutputFile = path.join(downloadsDir, "final_output.mp4");
     const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
-    return new Promise((resolve, reject) => {
-      const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${outputFile}" --props '${JSON.stringify(
-        { videoSrc: videoUrl, overlayText },
-      )}'`;
+    const overlayDurationSec = 10;
+    const durationInFrames = 300;
 
-      console.log("🚀 Executing render command:", renderCommand);
+    const renderCommand = `npx remotion render "${remotionEntry}" MyVideo "${overlayOutput}" --props '${JSON.stringify(
+      { videoSrc: videoUrl, overlayText, durationInFrames },
+    )}'`;
 
-      const process = exec(renderCommand);
+    await new Promise((resolve, reject) => {
+      const renderProcess = exec(renderCommand);
 
-      process.stdout.on("data", (data) => {
-        console.log(data);
+      renderProcess.stdout.on("data", (data) => {
         const match = data.match(/Rendered (\d+)\/(\d+)/);
         if (match && mainWindow) {
-          const progress = (parseInt(match[1]) / parseInt(match[2])) * 100;
-          mainWindow.webContents.send("render-progress", progress);
+          const progress = (parseInt(match[1]) / parseInt(match[2])) * 50;
+          mainWindow.webContents.send("render-progress", Math.floor(progress));
         }
       });
 
-      process.stderr.on("data", (data) => {
-        console.error("Error:", data);
+      renderProcess.stderr.on("data", (data) =>
+        console.error("Remotion stderr:", data),
+      );
+
+      renderProcess.on("close", (code) => {
+        code === 0 ? resolve() : reject("Remotion render failed");
+      });
+    });
+
+    // ✅ Get original video duration (clearly define videoDuration here)
+    const videoDuration = await new Promise((resolve, reject) => {
+      exec(
+        `ffprobe -i "${selectedVideoPath}" -show_entries format=duration -v quiet -of csv="p=0"`,
+        (err, stdout) => {
+          if (err) reject(err);
+          else resolve(parseFloat(stdout.trim()));
+        },
+      );
+    });
+
+    const ffmpegCommand = `
+    ffmpeg -y \
+    -i "${overlayOutput}" \
+    -i "${selectedVideoPath}" \
+    -filter_complex "[0:v]scale=1920:1080[v0]; \
+      [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; \
+      [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; \
+      [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]" \
+    -map "[v]" -map "[a]" \
+    "${finalOutputFile}"
+  `;
+
+    return new Promise((resolve, reject) => {
+      const ffmpegProcess = exec(ffmpegCommand);
+
+      ffmpegProcess.stderr.on("data", (data) => {
+        const match = data.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+        if (match && mainWindow) {
+          const hours = parseInt(match[1]);
+          const minutes = parseInt(match[2]);
+          const seconds = parseFloat(match[3]);
+          const currentTime = hours * 3600 + minutes * 60 + seconds;
+          const progress = 50 + (currentTime / videoDuration) * 50;
+          mainWindow.webContents.send(
+            "render-progress",
+            Math.min(100, Math.floor(progress)),
+          );
+        }
       });
 
-      process.on("close", (code) => {
+      ffmpegProcess.stderr.on("data", (data) =>
+        console.error("FFmpeg stderr:", data),
+      );
+
+      ffmpegProcess.on("close", (code) => {
         if (code === 0) {
-          console.log("✅ Render successful!");
-          shell.showItemInFolder(outputFile); // ✅ Open the output folder with the file selected
-          resolve(outputFile);
+          shell.showItemInFolder(finalOutputFile);
+          resolve(finalOutputFile);
         } else {
-          reject("Render failed.");
+          reject(`FFmpeg merge failed (code: ${code})`);
         }
       });
     });
