@@ -15,10 +15,6 @@ const isWindows = process.platform === "win32";
 const ffmpegPath = path.join(__dirname, "resources", "bin", isWindows ? "ffmpeg.exe" : "ffmpeg");
 const ffprobePath = path.join(__dirname, "resources", "bin", isWindows ? "ffprobe.exe" : "ffprobe");
 
-// ✅ Example usage (replace existing FFmpeg commands)
-exec(`"${ffmpegPath}" -i input.mp4 output.mp4`);
-exec(`"${ffprobePath}" -i input.mp4 -show_entries format=duration`);
-
 let mainWindow = null;
 let selectedVideoPath = null;
 
@@ -150,7 +146,7 @@ ipcMain.handle(
     // ✅ Get original video duration
     const videoDuration = await new Promise((resolve, reject) => {
       exec(
-        `ffprobe -i "${selectedVideoPath}" -show_entries format=duration -v quiet -of csv="p=0"`,
+        `"${ffprobePath}" -i "${selectedVideoPath}" -show_entries format=duration -v quiet -of csv="p=0"`,
         (err, stdout) => {
           if (err) reject(err);
           else resolve(parseFloat(stdout.trim()));
@@ -161,7 +157,7 @@ ipcMain.handle(
     // ✅ Get original video resolution
     const originalResolution = await new Promise((resolve, reject) => {
       exec(
-        `ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${selectedVideoPath}"`,
+        `"${ffprobePath}" -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${selectedVideoPath}"`,
         (err, stdout) => {
           if (err) reject(err);
           else resolve(stdout.trim());
@@ -172,7 +168,7 @@ ipcMain.handle(
     // ✅ Extract thumbnail (cover art) from original video
     await new Promise((resolve) => {
       exec(
-        `ffmpeg -y -i "${selectedVideoPath}" -vf "thumbnail" -frames:v 1 "${thumbnailFile}"`,
+        `"${ffmpegPath}" -y -i "${selectedVideoPath}" -vf "thumbnail" -frames:v 1 "${thumbnailFile}"`,
         (err) => {
           if (err) {
             console.warn(
@@ -187,7 +183,7 @@ ipcMain.handle(
     // ✅ FFmpeg merge videos in temp directory
     const mergedTempOutput = path.join(tempDir, "merged_output.mp4");
     const ffmpegCommand = `
-      ffmpeg -y \
+      "${ffmpegPath}" -y \
       -i "${overlayOutput}" \
       -i "${selectedVideoPath}" \
       -filter_complex "[0:v]scale=${originalResolution}[v0]; \
@@ -234,7 +230,7 @@ ipcMain.handle(
 
     if (thumbnailExists) {
       const thumbnailCommand = `
-        ffmpeg -y \
+        "${ffmpegPath}" -y \
         -i "${mergedTempOutput}" \
         -i "${thumbnailFile}" \
         -map 0 -map 1 \
