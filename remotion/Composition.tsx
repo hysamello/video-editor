@@ -43,41 +43,50 @@ export const MyComposition: React.FC<CompositionProps> = ({
 
       {/* ✅ Overlay - Positioned at Bottom Left with Animation */}
       {frame < 300 && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "120px", // Adjust positioning as needed
-            left: "120px",
-            display: "flex",
-            alignItems: "center",
-            backgroundColor: "rgba(0, 0, 0, 0.7)",
-            padding: "15px",
-            borderRadius: "12px",
-            color: "white",
-            fontSize: "20px",
-            gap: "12px",
-            transform: `translateY(${translateY}px)`,
-            opacity,
-          }}
-        >
-          {/* Animated Icon */}
-          <div
-            style={{
-              width: "50px",
-              height: "50px",
-              borderRadius: "50%",
-              backgroundColor: "#4caf50",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <IconAnimation />
-          </div>
+            <div
+                style={{
+                  position: "absolute",
+                  bottom: "20px", // Adjust positioning as needed
+                  left: "20px",
+                  display: "flex",
+                  alignItems: "center",
 
-          {/* ✅ Multi-line text with proper formatting */}
-          <div style={{ whiteSpace: "pre-line" }}>{overlayText}</div>
-        </div>
+                  color: "white",
+                  fontSize: "20px",
+                  transform: `translateY(${translateY}px)`,
+                  opacity,
+                }}
+            >
+              {/* Animated Icon */}
+              <div
+                  style={{
+                    width: "100px",
+                    height: "100px",
+                    borderRadius: "50%",
+                    backgroundColor: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+              >
+                <IconAnimation />
+              </div>
+
+              <div
+                  style={{
+                    backgroundColor: "#000000FF",
+                    borderRadius: "12px",
+                    paddingLeft: "100px",
+                    paddingRight: "30px"
+                  }}
+              >
+
+                {/* ✅ Multi-line text with proper formatting */}
+                <div style={{ whiteSpace: "pre-line" }}>{overlayText}</div>
+              </div>
+
+            </div>
+
       )}
     </AbsoluteFill>
   );

@@ -1,3 +1,10 @@
+.icon-container {
+  position: absolute;
+  top: 1rem; /* equivalent to Tailwind's top-4 */
+  left: 50%; /* equivalent to left-1/2 */
+  transform: translateX(-50%); /* equivalent to -translate-x-1/2 */
+}
+
 .ellipse-container {
   height: 100px;
   width: 150px;

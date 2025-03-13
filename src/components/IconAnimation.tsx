@@ -1,14 +1,13 @@
 import { useCurrentFrame, interpolate } from "remotion";
 
 const IconAnimation = () => {
-  const frame = useCurrentFrame(); // Get the current frame number
+    const frame = useCurrentFrame(); // Get the current frame number
 
-  // Rotate from 0 to 360 degrees in 60 frames and repeat
-  const rotate = interpolate(frame % 60, [0, 60], [0, 360], {
-    extrapolateRight: "extend", // Allow smooth continuation
-  });
+    const rotateY = interpolate(frame % 60, [0, 60], [0, 360], {
+        extrapolateRight: "extend",
+    });
 
-  return (
+    return (
     <div
       style={{
         width: "50px",
@@ -18,20 +17,21 @@ const IconAnimation = () => {
         justifyContent: "center",
       }}
     >
-      {/* Rotating Icon (Now frame-based) */}
-      <div
-        style={{
-          position: "absolute",
-          top: "4px",
-          left: "50%",
-          transform: `translateX(-50%) rotate(${rotate}deg)`, // Use frame-based rotation
-        }}
-      >
+        {/* Rotating Icon (Now frame-based) */}
+        <div
+            style={{
+                position: "absolute",
+                top: "-15px",
+                left: "50%",
+                transform: `translateX(-50%) rotateY(${rotateY}deg)`,
+                transformStyle: "preserve-3d", // (recommended for smooth 3D transform)
+            }}
+        >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="currentColor"
-          style={{ width: "30px", height: "30px", color: "black" }}
+          style={{ width: "80px", height: "80px", color: "black" }}
         >
           <path
             fillRule="evenodd"
@@ -44,11 +44,11 @@ const IconAnimation = () => {
       {/* Blinking Circle Animation (Now frame-based) */}
       <div
         style={{
-          width: "17px",
-          height: "17px",
+          width: "15px",
+          height: "15px",
           borderRadius: "50%",
           position: "absolute",
-          top: "20px",
+          top: "13px",
           left: "50%",
           transform: "translateX(-50%)",
           backgroundColor: frame % 30 < 15 ? "black" : "white", // Toggle every 15 frames

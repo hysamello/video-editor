@@ -76,6 +76,7 @@ export default function VideoPlayer() {
               compositionWidth={1280}
               compositionHeight={720}
               controls
+              acknowledgeRemotionLicense
             />
           </div>
 
@@ -101,7 +102,7 @@ export default function VideoPlayer() {
                   style={{
                     width: `${progress}%`,
                     height: "100%",
-                    background: "#4caf50",
+                    background: "#980202",
                     transition: "width 0.5s",
                   }}
                 />
