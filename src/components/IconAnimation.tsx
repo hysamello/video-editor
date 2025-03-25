@@ -1,12 +1,19 @@
-import {useCurrentFrame, interpolate, AbsoluteFill, useVideoConfig, Easing, spring} from "remotion";
+import {
+    useCurrentFrame,
+    interpolate,
+    AbsoluteFill,
+    useVideoConfig,
+    Easing
+} from "remotion";
 import {Ellipse} from "@remotion/shapes";
 import * as React from "react";
 
 type IconAnimationProps = {
     startAt: number;
+    color: string;
 };
 
-const IconAnimation: React.FC<IconAnimationProps> = ({ startAt }) => {
+const IconAnimation: React.FC<IconAnimationProps> = ({ startAt, color }) => {
     const frame = useCurrentFrame(); // Get the current frame number
 
     const rotateY = interpolate(frame % 60, [0, 60], [0, 360], {
@@ -35,16 +42,16 @@ const IconAnimation: React.FC<IconAnimationProps> = ({ startAt }) => {
     const totalFramesIcon = durationInSecondsIcon * fps;
 
     const adjustedFrame = frame - startAt;
-    const scaleIcon = spring({
-        frame: adjustedFrame < 0 ? 0 : adjustedFrame, // ❗ clamp to 0 before start
-        fps,
-        config: {
-            stiffness: 80,
-            damping: 15,
-            mass: 1,
-        },
-        durationInFrames: totalFramesIcon,
-    });
+    const scaleIcon = interpolate(
+        adjustedFrame < 0 ? 0 : adjustedFrame, // Clamp before animation starts
+        [0, totalFramesIcon],
+        [0, 1],
+        {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+            easing: t => t, // linear; replace with easing function if needed
+        }
+    );
 
     return (
     <div
@@ -71,7 +78,7 @@ const IconAnimation: React.FC<IconAnimationProps> = ({ startAt }) => {
                     rx={30}
                     ry={10}
                     fill="none"
-                    stroke="black"
+                    stroke={color}
                     strokeWidth={3}
                     strokeDasharray={dashLength}
                     strokeDashoffset={strokeDashoffset}
@@ -90,7 +97,7 @@ const IconAnimation: React.FC<IconAnimationProps> = ({ startAt }) => {
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
-                    fill="currentColor"
+                    fill={color}
                     style={{ width: "80px", height: "80px", color: "black" }}
                 >
                     <path
@@ -111,7 +118,7 @@ const IconAnimation: React.FC<IconAnimationProps> = ({ startAt }) => {
                     top: "13px",
                     left: "50%",
                     transform: "translateX(-50%)",
-                    backgroundColor: frame % 30 < 15 ? "black" : "white", // Toggle every 15 frames
+                    backgroundColor: frame % 30 < 15 ? `${color}` : "white", // Toggle every 15 frames
                 }}
             />
         </div>

@@ -1,9 +1,8 @@
 import {
   AbsoluteFill,
   Video,
-  spring,
   useCurrentFrame,
-  useVideoConfig,
+  useVideoConfig, interpolate, Easing,
 } from "remotion";
 import IconAnimation from "../src/components/IconAnimation";
 import * as React from "react";
@@ -12,12 +11,14 @@ type CompositionProps = {
   videoSrc: string;
   overlayText: string;
   startAt: number;
+  color: string;
 };
 
 export const MyComposition: React.FC<CompositionProps> = ({
   videoSrc,
   overlayText,
-    startAt,
+  startAt,
+    color,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -26,37 +27,37 @@ export const MyComposition: React.FC<CompositionProps> = ({
   const goFor = 300;
 
   const fadeStart = appear + goFor;
-  const fadeDurationInFrames = 30; // 1 second fade at 30fps
+  const fadeDurationInFrames = 30;
+  const adjustedFrameFade = frame - fadeStart;
 
-  // Use spring only after fadeStart
-  const fadeOutProgress = spring({
-    frame: Math.max(0, frame - fadeStart),
-    fps,
-    config: {
-      damping: 20,
-      stiffness: 100,
-      mass: 0.5,
-    },
-    durationInFrames: fadeDurationInFrames,
-  });
+  const fadeOutProgress = interpolate(
+      adjustedFrameFade < 0 ? 0 : adjustedFrameFade,
+      [0, fadeDurationInFrames],
+      [1, 0],
+      {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: t => t, // or Easing.out(Easing.ease) if desired
+      }
+  );
 
-  // Reverse progress so 1 → 0 (visible to invisible)
-  const opacity = frame < fadeStart ? 1 : 1 - fadeOutProgress;
+  const opacity = frame < fadeStart ? 1 : fadeOutProgress;
 
   const durationInSeconds = 2; // Animation duration
   const totalFrames = durationInSeconds * fps; // Total animation frames
 
-  // Smooth growth using spring()
-  const progress = spring({
-        frame: Math.max(0, frame - appear), // Ensures smooth stop at full width
-    fps,
-    config: {
-      stiffness: 50,
-      damping: 10,
-      mass: 0.5,
-    },
-    durationInFrames: totalFrames, // Ensure full animation cycle
-  });
+  const adjustedFrame = frame - appear;
+
+  const progress = interpolate(
+      adjustedFrame < 0 ? 0 : adjustedFrame, // Clamp below 0
+      [0, totalFrames],
+      [0, 1],
+      {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: Easing.inOut(Easing.ease), // Optional: smooth ease-in-out
+      }
+  );
 
   const maxWidth = 500; // Adjust to fit text properly
   const width = progress * maxWidth; // Expands smoothly from 0px to maxWidth
@@ -70,8 +71,8 @@ export const MyComposition: React.FC<CompositionProps> = ({
       <Video src={videoSrc} style={{ width: "100%", height: "100%" }} />
 
       {/* ✅ Overlay - Positioned at Bottom Left with Animation */}
-      {opacity > 0 && frame >= appear && (
-            <div
+      {frame >= appear && (
+              <div
                 style={{
                   position: "absolute",
                   bottom: "100px", // Adjust positioning as needed
@@ -80,7 +81,7 @@ export const MyComposition: React.FC<CompositionProps> = ({
                   alignItems: "center",
                   color: "white",
                   fontSize: "20px",
-                  opacity,
+                  opacity: Number(opacity),
                 }}
             >
               {/* Animated Icon */}
@@ -96,12 +97,13 @@ export const MyComposition: React.FC<CompositionProps> = ({
                     position: "absolute"
                   }}
               >
-                <IconAnimation startAt={startAt * fps} />
+                <IconAnimation startAt={appear} color={color} />
               </div>
+
 
               <div
                   style={{
-                    backgroundColor: "#000000FF",
+                    backgroundColor: `${color}`,
                     borderRadius: "20px",
                     marginLeft: "30px",
                     height: "100px",
@@ -112,11 +114,15 @@ export const MyComposition: React.FC<CompositionProps> = ({
                     overflow: "hidden", // Prevents content from showing before expansion
                   }}
               >
-                {/* ✅ Multi-line text with proper formatting */}
-                <div style={{
-                  whiteSpace: "pre-line",
-                  overflow: "hidden",
-                }}>{overlayText}</div>
+                {frame > appear + 30 && (
+                    <div style={{
+                      whiteSpace: "pre-line",
+                      overflow: "hidden",
+                      fontWeight: "bold",
+                      }}>{overlayText}
+                    </div>
+
+                )}
               </div>
 
             </div>

@@ -15,6 +15,9 @@ export default function VideoPlayer() {
   const [duration, setDuration] = useState(
     10,
   );
+
+  const [color, setColor] = useState("#000000");
+
   const [durationInFrames, setDurationInFrames] = useState(300);
   const [rendering, setRendering] = useState(false);
   const [progress, setProgress] = useState<number>(0);
@@ -78,7 +81,7 @@ export default function VideoPlayer() {
       <button onClick={handleSelectVideo}>Select Video</button>
 
       {videoSrc && (
-        <div>
+        <>
           <div style={{
             display: 'flex',
             flexDirection: 'row',
@@ -90,8 +93,11 @@ export default function VideoPlayer() {
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              width: '80%',
+              width: '100%',
               alignItems: "flex-start",
+              border: '2px dashed gray',
+              borderRadius: '10px',
+              padding: '10px',
             }}>
               <label htmlFor="overlay-text">Put address here</label>
               {/* ✅ Textarea for multi-line input */}
@@ -114,6 +120,9 @@ export default function VideoPlayer() {
             <div style={{
               display: 'flex',
               flexDirection: 'column',
+              border: '2px dashed gray',
+              borderRadius: '10px',
+              padding: '10px',
             }}>
               <div style={{
               display: 'flex',
@@ -161,17 +170,32 @@ export default function VideoPlayer() {
                   Seconds
                 </div>
 
+
               </div>
             </div>
-
-
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              paddingTop: '20px',
+              border: '2px dashed gray',
+              borderRadius: '10px',
+              padding: '10px',
+            }}>
+              <label htmlFor="color">Color:&nbsp;</label>
+              <input
+                  id="color"
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* ✅ Video Player */}
           <div style={{ transform: "scale(0.7)", transformOrigin: "center", display: "flex", justifyContent: "center" }}>
             <Player
               component={MyComposition}
-              inputProps={{ videoSrc, overlayText, startAt }}
+              inputProps={{ videoSrc, overlayText, startAt, color }}
               durationInFrames={durationInFrames}
               fps={30}
               compositionWidth={1280}
@@ -210,7 +234,7 @@ export default function VideoPlayer() {
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
