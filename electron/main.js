@@ -4,7 +4,7 @@ import fs from "fs";
 import os from "os";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
-import express from "express"; // ✅ Import Express
+import express from "express";
 import ffmpeg from "@ffmpeg-installer/ffmpeg";
 import ffprobe from "@ffprobe-installer/ffprobe";
 
@@ -98,7 +98,7 @@ ipcMain.handle("open-video-dialog", async () => {
 // ✅ Render Video & Open Output Folder
 ipcMain.handle(
   "render-remotion-video",
-  async (_event, videoUrl, overlayText) => {
+  async (_event, videoUrl, overlayText, startAt, duration) => {
     const downloadsDir = path.join(os.homedir(), "Downloads");
     const tempDir = os.tmpdir();
 
@@ -108,31 +108,40 @@ ipcMain.handle(
     const thumbnailFile = path.join(tempDir, "thumbnail.jpg");
     const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
-    const overlayDurationSec = 10;
-    const durationInFrames = 300;
+    const overlayDurationSec = duration;
+    const durationInFrames = duration * 30;
 
     // ✅ Write props to temporary file
-    const props = { videoSrc: videoUrl, overlayText, durationInFrames };
+    const props = {
+      videoSrc: videoUrl,
+      overlayText,
+      startAt,
+      durationInFrames,
+    };
+    console.log("Render props:", props);
+
     const propsFilePath = path.join(tempDir, "remotion_props.json");
     await fs.promises.writeFile(propsFilePath, JSON.stringify(props), "utf-8");
 
-    // ✅ Run Remotion using spawn
+    // ✅ Run Remotion using spawn (cross-platform safe)
     await new Promise((resolve, reject) => {
-      const npxPath = path.join(process.env.APPDATA, "npm", "npx.cmd");
-      console.log("Executing Remotion render with:", npxPath);
-
+      // ✅ Cross-platform command detection
       const command = process.platform === "win32" ? "npx.cmd" : "npx";
+      console.log("Using command for Remotion render:", command);
 
-      const renderProcess = spawn(command, [
-        "remotion",
-        "render",
-        remotionEntry,
-        "MyVideo",
-        overlayOutput,
-        "--props",
-        propsFilePath,
-      ], { shell: true });
-
+      const renderProcess = spawn(
+        command,
+        [
+          "remotion",
+          "render",
+          remotionEntry,
+          "MyVideo",
+          overlayOutput,
+          "--props",
+          propsFilePath,
+        ],
+        { shell: true },
+      );
 
       renderProcess.stdout.on("data", (data) => {
         const match = data.toString().match(/Rendered (\d+)\/(\d+)/);
