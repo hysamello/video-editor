@@ -25,7 +25,7 @@ app.disableHardwareAcceleration();
 const videoServer = express();
 const VIDEO_PORT = 3001; // ✅ Ensure this does not conflict with Vite
 
-videoServer.get("/video", (req, res) => {
+videoServer.get("/video", (_req, res) => {
   if (!selectedVideoPath) {
     return res.status(404).send("No video selected");
   }
@@ -108,8 +108,9 @@ ipcMain.handle(
     const thumbnailFile = path.join(tempDir, "thumbnail.jpg");
     const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
-    const overlayDurationSec = duration;
-    const durationInFrames = duration * 30;
+    const overlayDurationSec = Math.max(1, duration);
+    const durationInFrames = overlayDurationSec * 30;
+    const overlayEndTime = startAt + overlayDurationSec;
 
     // ✅ Write props to temporary file
     const props = {
@@ -139,6 +140,12 @@ ipcMain.handle(
           overlayOutput,
           "--props",
           propsFilePath,
+          "--duration-in-frames",
+          durationInFrames.toString(),
+          "--fps",
+          "30",
+          "--concurrency",
+          "1",
         ],
         { shell: true },
       );
@@ -247,7 +254,7 @@ ipcMain.handle(
       "-i",
       selectedVideoPath,
       "-filter_complex",
-      `[0:v]scale=${originalResolution}[v0]; [1:v]trim=start=${overlayDurationSec},setpts=PTS-STARTPTS[v1]; [1:a]atrim=start=${overlayDurationSec},asetpts=PTS-STARTPTS[a1]; [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]`,
+      `[0:v]scale=${originalResolution}[v0]; [1:v]trim=start=${overlayEndTime},setpts=PTS-STARTPTS[v1]; [1:a]atrim=start=${overlayEndTime},asetpts=PTS-STARTPTS[a1]; [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]`,
       "-map",
       "[v]",
       "-map",

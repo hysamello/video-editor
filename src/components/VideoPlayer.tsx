@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, KeyboardEvent, useState } from "react";
 import { Player } from "@remotion/player";
 import { MyComposition } from "../../remotion/Composition";
 
@@ -50,7 +50,7 @@ export default function VideoPlayer() {
     setRendering(false);
   };
 
-  const handleChangeAddress = (e) => {
+  const handleChangeAddress = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const inputValue = e.target.value;
     const lines = inputValue.split("\n");
 
@@ -61,7 +61,7 @@ export default function VideoPlayer() {
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     const lines = overlayText.split("\n");
 
     // Prevent adding more lines via Enter
@@ -184,7 +184,12 @@ export default function VideoPlayer() {
           >
             <Player
               component={MyComposition}
-              inputProps={{ videoSrc, overlayText, startAt }}
+              inputProps={{
+                videoSrc,
+                overlayText,
+                startAt,
+                durationInFrames: duration * 30,
+              }}
               durationInFrames={durationInFrames}
               fps={30}
               compositionWidth={1280}
