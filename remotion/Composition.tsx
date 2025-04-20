@@ -26,7 +26,6 @@ export const MyComposition: React.FC<CompositionProps> = ({
   const { fps } = useVideoConfig();
 
   const appear = startAt * fps;
-  const goFor = 300;
 
   const fadeStart = appear + durationInFrames;
   const fadeDurationInFrames = 30;
