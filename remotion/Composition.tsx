@@ -12,6 +12,7 @@ type CompositionProps = {
   overlayText: string;
   startAt: number;
   color: string;
+  durationInFrames: number;
 };
 
 export const MyComposition: React.FC<CompositionProps> = ({
@@ -19,6 +20,7 @@ export const MyComposition: React.FC<CompositionProps> = ({
   overlayText,
   startAt,
     color,
+  durationInFrames,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -26,7 +28,7 @@ export const MyComposition: React.FC<CompositionProps> = ({
   const appear = startAt * fps;
   const goFor = 300;
 
-  const fadeStart = appear + goFor;
+  const fadeStart = appear + durationInFrames;
   const fadeDurationInFrames = 30;
   const adjustedFrameFade = frame - fadeStart;
 
@@ -63,10 +65,12 @@ export const MyComposition: React.FC<CompositionProps> = ({
   const width = progress * maxWidth; // Expands smoothly from 0px to maxWidth
 
   return (
-    <AbsoluteFill style={{
-      backgroundColor: "black",
-      width: "100%"
-    }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor: "black",
+        width: "100%",
+      }}
+    >
       {/* Background Video */}
       <Video src={videoSrc} style={{ width: "100%", height: "100%" }} />
 

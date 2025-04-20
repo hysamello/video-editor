@@ -3,6 +3,8 @@ export interface ElectronAPI {
   renderRemotionVideo: (
     videoSrc: string,
     overlayText: string,
+    startAt: number,
+    duration: number,
     progressCallback: (progress: number) => void,
   ) => Promise<string>;
 }
