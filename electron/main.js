@@ -102,9 +102,17 @@ ipcMain.handle(
     const downloadsDir = path.join(os.homedir(), "Downloads");
     const tempDir = os.tmpdir();
 
+    const baseName = "exported_video_with_overlay";
+    const extension = ".mp4";
+    let counter = 0;
+
+    let finalOutputFile = path.join(downloadsDir, `${baseName}${extension}`);
+    while (fs.existsSync(finalOutputFile)) {
+      counter += 1;
+      finalOutputFile = path.join(downloadsDir, `${baseName} (${counter})${extension}`);
+    }
+
     const overlayOutput = path.join(tempDir, "overlay_output.mp4");
-    const finalOutputFile = path.join(downloadsDir, "final_output.mp4");
-    const finalOutputWithThumb = finalOutputFile.replace(".mp4", "_thumb.mp4");
     const thumbnailFile = path.join(tempDir, "thumbnail.jpg");
     const remotionEntry = path.join(__dirname, "../remotion/index.ts");
 
@@ -321,7 +329,7 @@ ipcMain.handle(
           "copy",
           "-disposition:v:1",
           "attached_pic",
-          finalOutputWithThumb,
+          finalOutputFile,
         ]);
 
         thumbnailProcess.stderr.on("data", (data) =>
@@ -336,7 +344,7 @@ ipcMain.handle(
             fs.copyFileSync(mergedTempOutput, finalOutputFile);
             shell.showItemInFolder(finalOutputFile);
           } else {
-            shell.showItemInFolder(finalOutputWithThumb);
+            shell.showItemInFolder(finalOutputFile);
           }
           resolve();
         });
@@ -353,6 +361,6 @@ ipcMain.handle(
       }
     });
 
-    return thumbnailExists ? finalOutputWithThumb : finalOutputFile;
+    return finalOutputFile;
   },
 );
