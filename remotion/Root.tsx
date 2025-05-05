@@ -9,6 +9,6 @@ export const RemotionRoot: React.FC = () => (
     fps={30}
     width={1280}
     height={720}
-    defaultProps={{ videoSrc: "", overlayText: "Default Text", startAt: 0, durationInFrames: 10 * 30 }}
+    defaultProps={{ videoSrc: "", overlayText: "Default Text", startAt: 0, durationInFrames: 10 * 30, color: "#000000" }}
   />
 );

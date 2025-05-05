@@ -19,7 +19,7 @@ export const MyComposition: React.FC<CompositionProps> = ({
   videoSrc,
   overlayText,
   startAt,
-    color,
+  color,
   durationInFrames,
 }) => {
   const frame = useCurrentFrame();
