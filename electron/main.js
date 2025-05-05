@@ -255,30 +255,33 @@ ipcMain.handle(
 
     // ✅ FFmpeg merge videos in temp directory
     const mergedTempOutput = path.join(tempDir, "merged_output.mp4");
-    const ffmpegArgs = [
-      "-y",
-      "-i",
-      overlayOutput,
-      "-i",
-      selectedVideoPath,
-      "-filter_complex",
-      `[0:v]scale=${originalResolution}[v0]; [1:v]trim=start=${overlayEndTime},setpts=PTS-STARTPTS[v1]; [1:a]atrim=start=${overlayEndTime},asetpts=PTS-STARTPTS[a1]; [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]`,
-      "-map",
-      "[v]",
-      "-map",
-      "[a]",
-      "-c:v",
-      "libx264",
-      "-crf",
-      "18",
-      "-preset",
-      "veryfast",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "320k",
-      mergedTempOutput,
-    ];
+      const resolution = originalResolution.replace('x', ':');   // "640x360" -> "640:360"
+
+      const ffmpegArgs = [
+          '-y',
+          '-i', overlayOutput,
+          '-i', selectedVideoPath,
+
+          '-filter_complex',
+          `[0:v]setpts=PTS-STARTPTS,format=yuv420p,scale=${resolution}[v0]; \
+           [1:v]trim=start=${overlayEndTime},setpts=PTS-STARTPTS[v1]; \
+           [1:a]atrim=start=${overlayEndTime},asetpts=PTS-STARTPTS[a1]; \
+           [v0][0:a][v1][a1]concat=n=2:v=1:a=1[v][a]`,
+
+          // output-wide settings
+          '-vsync', '2',          // keep timestamps sane
+          '-r',     '30',         // final file is 30 fps
+
+          '-map', '[v]',
+          '-map', '[a]',
+          '-c:v', 'libx264',
+          '-crf',  '18',
+          '-preset', 'veryfast',
+          '-c:a',  'aac',
+          '-b:a',  '320k',
+
+          mergedTempOutput,
+      ];
 
     console.log("Executing FFmpeg with arguments:", ffmpegArgs);
 
