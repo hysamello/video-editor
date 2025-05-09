@@ -124,5 +124,7 @@ fi
 echo -e "${GREEN}🚀 Launching the app...${NC}"
 npm run start
 
-echo -e "${GREEN}✅ Electron closed. Exiting script and terminal...${NC}"
+echo -e "${GREEN}✅ Electron closed. Stopping Vite and exiting...${NC}"
+pkill -f "vite" || true
 exit 0
+
