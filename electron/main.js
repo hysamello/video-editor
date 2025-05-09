@@ -61,8 +61,17 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
+
+    // ✅ macOS: Close Terminal window if this was launched from Terminal
+    if (process.env.TERM_PROGRAM === "Apple_Terminal") {
+      spawn("osascript", [
+        "-e",
+        'tell application "Terminal" to close (every window whose frontmost is true)'
+      ]);
+    }
   }
 });
+
 
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
