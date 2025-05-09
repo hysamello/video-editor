@@ -124,4 +124,5 @@ fi
 echo -e "${GREEN}🚀 Launching the app...${NC}"
 npm run start
 
+echo -e "${GREEN}✅ Electron closed. Exiting script and terminal...${NC}"
 exit 0

@@ -53,8 +53,7 @@ app.whenReady().then(() => {
 
   mainWindow.loadURL("http://localhost:5173"); // ✅ Ensure this matches Vite's port
 
-  mainWindow.on("closed", () => {
-    mainWindow = null;
+  mainWindow.on("close", () => {
     app.quit();
   });
 });
