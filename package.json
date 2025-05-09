@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "vite",
     "electron": "electron electron/main.js",
-    "start": "npm run dev & npm run electron",
+    "start": "concurrently --kill-others-on-fail \"npm:dev\" \"npm:electron\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -80,6 +80,7 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
     "electron": "^34.2.0",
     "electron-builder": "^24.13.3",
     "eslint": "^9.19.0",
