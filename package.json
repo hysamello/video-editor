@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "vite",
     "electron": "electron electron/main.js",
-    "start": "concurrently --kill-others-on-exit \"npm:dev\" \"npm:electron\"",
+    "start": "concurrently --kill-others --success first \"npm:dev\" \"npm:electron\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
