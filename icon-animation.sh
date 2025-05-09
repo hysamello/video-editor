@@ -108,3 +108,5 @@ fi
 # -----------------------------------------------
 echo -e "${GREEN}🚀 Launching the app...${NC}"
 npm run start
+
+exit 0

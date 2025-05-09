@@ -55,6 +55,7 @@ app.whenReady().then(() => {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    app.quit();
   });
 });
 

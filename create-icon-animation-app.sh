@@ -18,12 +18,19 @@ mkdir -p "$APP_MACOS"
 cp "$PROJECT_DIR/$SCRIPT_NAME" "$APP_MACOS/$SCRIPT_NAME"
 chmod +x "$APP_MACOS/$SCRIPT_NAME"
 
-# 3. Create launcher script
+# 3. Create launcher script using AppleScript for clean Terminal handling
 cat > "$APP_MACOS/run" <<EOF
 #!/bin/bash
-open -a Terminal "$APP_MACOS/$SCRIPT_NAME"
+osascript <<EOD
+tell application "Terminal"
+    do script "chmod +x '$APP_MACOS/$SCRIPT_NAME'; '$APP_MACOS/$SCRIPT_NAME'; exit"
+    activate
+end tell
+EOD
 EOF
+
 chmod +x "$APP_MACOS/run"
+
 
 # 4. Create Info.plist
 cat > "$APP_INFO" <<EOF
