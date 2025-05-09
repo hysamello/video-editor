@@ -20,12 +20,27 @@ NC='\033[0m'
 # -----------------------------------------------
 # CHECK REQUIRED COMMANDS
 # -----------------------------------------------
-for cmd in git curl sha256sum; do
+for cmd in curl sha256sum; do
   if ! command -v $cmd &>/dev/null; then
-    echo -e "${RED}❌ $cmd is required but not installed.${NC}"
+    echo -e "${RED}❌ '$cmd' is required but not installed.${NC}"
     exit 1
   fi
 done
+
+# ✅ Check for git separately and offer install
+if ! command -v git &>/dev/null; then
+  echo -e "${YELLOW}🛠️ Git is not installed. Installing...${NC}"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    xcode-select --install
+    echo -e "${BLUE}📦 Installing Command Line Tools... Please wait."
+    read -p "👉 Press ENTER once installation completes to continue..."
+  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    sudo apt-get update && sudo apt-get install -y git
+  else
+    echo -e "${RED}❌ Unsupported OS for auto-install. Please install Git manually.${NC}"
+    exit 1
+  fi
+fi
 
 # -----------------------------------------------
 # CLONE IF FIRST TIME
@@ -106,7 +121,17 @@ fi
 # -----------------------------------------------
 # RUN THE APP
 # -----------------------------------------------
-echo -e "${GREEN}🚀 Launching the app...${NC}"
-npm run start
+echo -e "${BLUE}▶️ Starting Vite in background...${NC}"
+npm run dev &
 
+echo -e "${BLUE}⏳ Waiting for Vite to start...${NC}"
+sleep 2
+
+echo -e "${GREEN}🚀 Launching Electron...${NC}"
+npx electron electron/main.js
+
+# -----------------------------------------------
+# AFTER ELECTRON WINDOW IS CLOSED
+# -----------------------------------------------
+echo -e "${GREEN}✅ Electron closed. Exiting script and terminal...${NC}"
 exit 0
