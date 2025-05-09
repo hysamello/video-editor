@@ -49,9 +49,12 @@ cat > "$APP_INFO" <<EOF
   <string>run</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
+  <key>LSUIElement</key>
+  <true/>
 </dict>
 </plist>
 EOF
+
 
 # 5. Done
 echo "✅ Created $APP_NAME.app at $APP_DIR"
