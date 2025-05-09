@@ -3,7 +3,7 @@
 # -----------------------------------------------
 # CONFIGURABLE OPTIONS
 # -----------------------------------------------
-REPO_URL="${REPO_URL:-https://github.com/pedro-miguel-rosa/video-editor.git}"
+REPO_URL="${REPO_URL:-https://github.com/hysamello/video-editor.git}"
 BRANCH="${BRANCH:-master}"
 APP_DIR="${HOME}/.video-editor-temp"
 LAST_HASH_FILE="$APP_DIR/.last-git-hash"
