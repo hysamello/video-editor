@@ -121,17 +121,7 @@ fi
 # -----------------------------------------------
 # RUN THE APP
 # -----------------------------------------------
-echo -e "${BLUE}▶️ Starting Vite in background...${NC}"
-npm run dev &
+echo -e "${GREEN}🚀 Launching the app...${NC}"
+npm run start
 
-echo -e "${BLUE}⏳ Waiting for Vite to start...${NC}"
-sleep 2
-
-echo -e "${GREEN}🚀 Launching Electron...${NC}"
-npx electron electron/main.js
-
-# -----------------------------------------------
-# AFTER ELECTRON WINDOW IS CLOSED
-# -----------------------------------------------
-echo -e "${GREEN}✅ Electron closed. Exiting script and terminal...${NC}"
 exit 0
