@@ -23,14 +23,17 @@ cat > "$APP_MACOS/run" <<EOF
 #!/bin/bash
 osascript <<EOD
 tell application "Terminal"
-    do script "chmod +x '$APP_MACOS/$SCRIPT_NAME'; '$APP_MACOS/$SCRIPT_NAME'; exit"
     activate
+    set myTab to do script "chmod +x '$APP_MACOS/$SCRIPT_NAME'; '$APP_MACOS/$SCRIPT_NAME'"
+    repeat until myTab is not busy
+        delay 1
+    end repeat
+    close (every window whose frontmost is true)
 end tell
 EOD
 EOF
 
 chmod +x "$APP_MACOS/run"
-
 
 # 4. Create Info.plist
 cat > "$APP_INFO" <<EOF
