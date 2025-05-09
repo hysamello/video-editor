@@ -71,7 +71,7 @@ export const MyComposition: React.FC<CompositionProps> = ({
       }}
     >
       {/* Background Video */}
-      <Video src={videoSrc} style={{ width: "100%", height: "100%" }} />
+      <Video src={videoSrc.startsWith("file://") ? decodeURI(videoSrc.replace("file://", "")) : videoSrc} style={{ width: "100%", height: "100%" }} />
 
       {/* ✅ Overlay - Positioned at Bottom Left with Animation */}
       {frame >= appear && (

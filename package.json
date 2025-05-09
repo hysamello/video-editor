@@ -1,13 +1,13 @@
 {
   "name": "video-editor",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.33",
   "description": "Desktop video editor built with Electron, Vite, and Remotion",
   "type": "module",
   "main": "electron/main.js",
   "homepage": "https://example.com",
   "author": {
-    "name": "Pedro  Rosa",
+    "name": "Pedro Rosa",
     "email": "pedro@rosello.com"
   },
   "scripts": {
@@ -60,19 +60,19 @@
     "@ffmpeg/core": "^0.12.10",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffprobe-installer/ffprobe": "^2.1.2",
-    "@remotion/bundler": "^4.0.278",
-    "@remotion/cli": "^4.0.278",
-    "@remotion/eslint-plugin": "^4.0.278",
-    "@remotion/paths": "^4.0.278",
-    "@remotion/player": "^4.0.278",
-    "@remotion/renderer": "^4.0.278",
-    "@remotion/shapes": "^4.0.278",
+    "@remotion/bundler": "^4.0.298",
+    "@remotion/cli": "^4.0.298",
+    "@remotion/eslint-plugin": "^4.0.298",
+    "@remotion/paths": "^4.0.298",
+    "@remotion/player": "^4.0.298",
+    "@remotion/renderer": "^4.0.298",
+    "@remotion/shapes": "^4.0.298",
     "express": "^4.21.2",
     "framer-motion": "^12.5.0",
     "html2canvas": "^1.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "remotion": "^4.0.278"
+    "remotion": "^4.0.298"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
@@ -91,6 +91,6 @@
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.22.0",
-    "vite": "^6.1.0"
+    "vite": "^6.3.5"
   }
 }
